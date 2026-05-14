@@ -1,0 +1,53 @@
+{
+  "name": "@travisbreaks/travisEATSbugs",
+  "version": "0.0.1-alpha.0",
+  "description": "Drop-in visual-feedback widget for any web app.",
+  "license": "Apache-2.0",
+  "author": "Travis Bonnet <travisbonnet@gmail.com>",
+  "homepage": "https://github.com/travisbreaks/travisEATSbugs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/travisbreaks/travisEATSbugs.git",
+    "directory": "packages/widget"
+  },
+  "bugs": {
+    "url": "https://github.com/travisbreaks/travisEATSbugs/issues"
+  },
+  "keywords": [
+    "visual-feedback",
+    "bug-tracking",
+    "annotation",
+    "widget",
+    "bugherd-alternative",
+    "open-source"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "happy-dom": "^15.11.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}

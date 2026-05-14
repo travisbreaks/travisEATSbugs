@@ -1,0 +1,39 @@
+{
+  "name": "travisEATSbugs",
+  "version": "0.0.1-alpha.0",
+  "private": true,
+  "description": "Drop-in visual-feedback widget for any web app. Click anywhere to mark, animated sticky-note pins, screenshot capture, stable element anchoring, AI triage.",
+  "license": "Apache-2.0",
+  "author": "Travis Bonnet <travisbonnet@gmail.com> (https://travisfixes.com)",
+  "homepage": "https://github.com/travisbreaks/travisEATSbugs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/travisbreaks/travisEATSbugs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/travisbreaks/travisEATSbugs/issues"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "bake-off": "node --experimental-strip-types scripts/bake-off-recraft.ts",
+    "preview": "node --experimental-strip-types scripts/render-svg-to-png.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.9.0",
+    "svgo": "^4.0.1",
+    "typescript": "^5.6.3"
+  }
+}
