@@ -41,9 +41,14 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src"
+  },
+  "dependencies": {
+    "@medv/finder": "^3.2.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.9.0",
     "happy-dom": "^15.11.0",
     "tsup": "^8.3.5",

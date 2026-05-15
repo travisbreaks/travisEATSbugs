@@ -37,7 +37,9 @@ function buildButton(): HTMLButtonElement {
   btn.setAttribute('aria-label', 'Open travisEATSbugs feedback')
   btn.setAttribute('aria-pressed', 'false')
   btn.title = 'Send feedback'
-  btn.innerHTML = BRAND_MARK_SVG
+  // Inner wrapper so we can stack ambient rotation/translate on .mark without
+  // overriding the button's hover/active scale transforms.
+  btn.innerHTML = `<span class="mark" aria-hidden="true">${BRAND_MARK_SVG}</span>`
   return btn
 }
 
@@ -55,6 +57,7 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       --teb-bg: #fcf6ec;
       --teb-fg: #0c0908;
       --teb-shadow: rgba(0, 0, 0, 0.22);
+      --teb-glow: rgba(255, 42, 109, 0.35);
       --teb-z: 2147483647;
       --teb-size: 56px;
       --teb-radius: 14px;
@@ -89,12 +92,50 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       padding: 8px;
       box-shadow:
         0 4px 14px var(--teb-shadow),
-        0 0 0 1px rgba(0, 0, 0, 0.04);
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        0 0 0 0 var(--teb-glow);
       transition:
         transform 200ms var(--teb-ease),
         box-shadow 400ms var(--teb-ease);
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      isolation: isolate;
+      animation: teb-breathe 5400ms var(--teb-ease) infinite;
+    }
+
+    /* Electric pulse ring: radial gradient pseudo-element, dormant
+       until hover. Composite-only (transform+opacity), pierces nothing. */
+    button::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: calc(var(--teb-radius) + 2px);
+      background: radial-gradient(
+        circle at 50% 50%,
+        var(--teb-glow) 0%,
+        transparent 65%
+      );
+      opacity: 0;
+      transform: scale(0.85);
+      transition:
+        opacity 320ms var(--teb-ease),
+        transform 480ms var(--teb-ease);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* .mark wraps the SVG so we can stack ambient transforms here without
+       fighting the button's hover/active scale. Sticky-note feel:
+       slow wobble + occasional micro-twitch on the 95% mark. */
+    .mark {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      transform-origin: 50% 60%;
+      animation: teb-sticky 7800ms var(--teb-ease) infinite;
+      will-change: transform;
     }
 
     button svg {
@@ -107,7 +148,18 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       transform: scale(1.03);
       box-shadow:
         0 8px 22px var(--teb-shadow),
-        0 0 0 1px rgba(0, 0, 0, 0.06);
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 0 0 8px var(--teb-glow);
+      animation-play-state: paused;
+    }
+
+    button:hover::before {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+
+    button:hover .mark {
+      animation-play-state: paused;
     }
 
     button:active {
@@ -123,12 +175,57 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
     button[aria-pressed='true'] {
       background: var(--teb-fg);
       color: var(--teb-bg);
+      animation: none;
     }
 
-    /* MANDATORY per design-canon §9a. */
+    button[aria-pressed='true'] .mark {
+      animation: none;
+      transform: rotate(0deg);
+    }
+
+    /* Breathing glow ambient: shadow halo expands + contracts.
+       Box-shadow only, no layout impact. 5.4s smooth-like-butter cycle. */
+    @keyframes teb-breathe {
+      0%, 100% {
+        box-shadow:
+          0 4px 14px var(--teb-shadow),
+          0 0 0 1px rgba(0, 0, 0, 0.04),
+          0 0 0 0 var(--teb-glow);
+      }
+      50% {
+        box-shadow:
+          0 6px 18px var(--teb-shadow),
+          0 0 0 1px rgba(0, 0, 0, 0.06),
+          0 0 0 5px var(--teb-glow);
+      }
+    }
+
+    /* Sticky-note wobble (slow, ambient) with a 240ms micro-twitch
+       at the 96% mark: the bug "notices" something every 7.8s.
+       Transform-only, applied to .mark wrapper. */
+    @keyframes teb-sticky {
+      0% { transform: rotate(-0.6deg) translateY(0); }
+      45% { transform: rotate(0.6deg) translateY(-1px); }
+      90% { transform: rotate(-0.4deg) translateY(0); }
+      96% { transform: rotate(-1.4deg) translateY(-0.5px); }
+      98% { transform: rotate(0.9deg) translateY(0); }
+      100% { transform: rotate(-0.6deg) translateY(0); }
+    }
+
+    /* MANDATORY per design-canon §9a. Kill every ambient. */
     @media (prefers-reduced-motion: reduce) {
-      button {
-        transition: none;
+      button,
+      button::before,
+      .mark {
+        animation: none !important;
+        transition: none !important;
+      }
+      .mark {
+        transform: none;
+      }
+      button::before {
+        opacity: 0;
+        transform: none;
       }
       button:hover,
       button:active {
