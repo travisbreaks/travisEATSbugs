@@ -11,6 +11,8 @@ import {
   init as initBugButton,
   localStorageReporter,
   MemoryAdapter,
+  toW3C,
+  type TriageFn,
 } from '@travisbreaks/travisEATSbugs'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -58,9 +60,43 @@ const SEED: Annotation[] = [
   },
 ]
 
+/**
+ * Stub TriageFn that produces a structurally-correct TriageResult without
+ * hitting the real Anthropic API. Keeps the playground free of network
+ * calls and credit spend; production hosts swap this for `httpTriage`
+ * pointed at the deployed worker route.
+ */
+const stubTriage: TriageFn = async (annotation) => {
+  const body = annotation.body.toLowerCase()
+  const severity: 'low' | 'medium' | 'high' =
+    body.length > 140 || /broken|crash|wrong|missing|cannot|can't|won't/.test(body)
+      ? 'high'
+      : body.length > 60
+        ? 'medium'
+        : 'low'
+  let category = 'misc'
+  if (/contrast|focus|aria|alt|tab|screen reader/.test(body)) category = 'a11y'
+  else if (/copy|wording|grammar|spelling|tone/.test(body)) category = 'copy'
+  else if (/layout|spacing|align|grid|column|margin|padding/.test(body)) category = 'layout'
+  else if (/slow|lag|jank|fps|perf|loading/.test(body)) category = 'perf'
+  else if (/crash|error|broken|fail|404|500/.test(body)) category = 'broken'
+  return {
+    severity,
+    category,
+    rationale: 'demo classifier (length + keywords); replace with httpTriage in production',
+    triagedAt: Date.now(),
+  }
+}
+
 export default function Home() {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
+  const apiRef = useRef<MemoryAdapter | null>(null)
   const [reporterMode, setReporterMode] = useState(false)
+  const [triageEnabled, setTriageEnabled] = useState(false)
+  const triageEnabledRef = useRef(false)
+  useEffect(() => {
+    triageEnabledRef.current = triageEnabled
+  }, [triageEnabled])
 
   useEffect(() => {
     setReporterMode(
@@ -98,6 +134,7 @@ export default function Home() {
       // the new identity when they do.
       currentUser: { id: 'demo', display: 'You' },
     })
+    apiRef.current = api
 
     // Demo audit hook: log every mutation to the console. Real consumers
     // (Pivotal admin inbox, Lion's Share /tracks aggregator) wire this to
@@ -111,10 +148,17 @@ export default function Home() {
       ? { namespace: REPORTER_NAMESPACE }
       : undefined
 
+    // Late-bound triage so the toggle button can flip behavior at runtime
+    // without remounting the widgets. The wrap reads triageEnabledRef on
+    // every call; when off it returns null (matching the "no triage URL
+    // configured" production behavior).
+    const triage: TriageFn = async (a) => (triageEnabledRef.current ? stubTriage(a) : null)
+
     const drawer = new AnnotationWidget({
       api,
       auth,
       onAudit,
+      triage,
       renderMode: 'drawer',
       // Sit left of the bug button so both are visible.
       position: { bottom: 24, right: 96 },
@@ -128,6 +172,7 @@ export default function Home() {
         api,
         auth,
         onAudit,
+        triage,
         renderMode: 'overlay',
         surface: surfaceRef.current,
         surfaceId: 'playground-canvas',
@@ -152,7 +197,36 @@ export default function Home() {
       drawer.destroy()
       overlay?.destroy()
       destroyBugButton()
+      apiRef.current = null
     }
+  }, [])
+
+  const exportW3C = useCallback(async () => {
+    const api = apiRef.current
+    if (!api) return
+    const all = await api.list({ state: 'all' })
+    const doc = {
+      '@context': 'http://www.w3.org/ns/anno.jsonld',
+      type: 'AnnotationCollection',
+      total: all.length,
+      items: all.map((a) => toW3C(a)),
+    }
+    const json = JSON.stringify(doc, null, 2)
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(json)
+      } catch {
+        // fall through to download
+      }
+    }
+    if (typeof document === 'undefined') return
+    const blob = new Blob([json], { type: 'application/ld+json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'travisEATSbugs-annotations.jsonld'
+    link.click()
+    URL.revokeObjectURL(url)
   }, [])
 
   return (
@@ -260,12 +334,50 @@ export default function Home() {
         </section>
 
         <section>
+          <h2>{'// v0.5 polish (try it)'}</h2>
+          <p className="section-body">
+            Spatial pins on the staging surface tilt at a per-pin random rest angle and lift on
+            hover. Drag any pin to reposition (commits a new <code>anchor</code> patch); under
+            ~5&nbsp;px counts as a click. Compose forms render as paper-textured sticky notes.
+            Reduced-motion preference disables the lot.
+          </p>
+          <p className="section-body">
+            AI triage runs after every successful <code>create</code> via{' '}
+            <code>wrapWithTriage</code>. The playground uses a stub classifier (length + keyword
+            heuristics) for zero-cost demos; production wires <code>httpTriage</code> at the
+            deployed worker.
+          </p>
+          <div className="cta-row">
+            <button
+              type="button"
+              className="cta-btn"
+              onClick={() => setTriageEnabled((v) => !v)}
+              aria-pressed={triageEnabled}
+            >
+              {triageEnabled ? 'Triage: on (stub)' : 'Triage: off'}
+            </button>
+            <button type="button" className="cta-btn" onClick={exportW3C}>
+              Export as W3C JSON-LD
+            </button>
+          </div>
+          <p className="section-body hint">
+            With triage on, create a new annotation: the audit log shows two adapter writes (create
+            + triage). The W3C export converts every annotation to spec-shaped JSON-LD with the
+            full selector union and a <code>teb:ext</code> extension block.
+          </p>
+        </section>
+
+        <section>
           <h2>{'// up next'}</h2>
           <ul>
-            <li>v0.2 backend adapters: Cloudflare D1 + R2 worker, BYO HTTP.</li>
-            <li>v0.3 Pivotal cutover: page-notes drawer swaps for AnnotationWidget.</li>
-            <li>v0.4 Lion&apos;s Share cutover: pin-annotations swap for AnnotationWidget overlay.</li>
-            <li>v0.5 AI triage hook + screenshot capture + sticky-note Motion polish.</li>
+            <li>
+              v0.2 worker live deploy at <code>eats.travisfixes.com</code> (the only remaining v0.2
+              gate; needs <code>wrangler login</code>).
+            </li>
+            <li>v0.3 Pivotal cutover (Bibble + Lion&apos;s Share own this; not the widget&apos;s job).</li>
+            <li>v0.4 Lion&apos;s Share cutover (same).</li>
+            <li>v0.6 integrations: GitHub Issues, Linear, Jira, Slack two-way sync.</li>
+            <li>v1.0 public npm release + docs site.</li>
           </ul>
         </section>
 
@@ -480,6 +592,35 @@ export default function Home() {
           cursor: pointer;
         }
         .link-btn:hover { color: var(--teb-secondary); }
+
+        .cta-row {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin: 16px 0 8px;
+        }
+        .cta-btn {
+          background: transparent;
+          border: 1px solid var(--teb-grid-line);
+          color: var(--teb-text-primary);
+          padding: 8px 14px;
+          border-radius: 4px;
+          font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+          font-size: 0.85rem;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          transition:
+            border-color 200ms var(--teb-ease),
+            color 200ms var(--teb-ease);
+        }
+        .cta-btn:hover {
+          border-color: var(--teb-tertiary);
+          color: var(--teb-tertiary);
+        }
+        .cta-btn[aria-pressed='true'] {
+          border-color: var(--teb-signal);
+          color: var(--teb-signal);
+        }
 
         .hint {
           color: var(--teb-text-secondary);
