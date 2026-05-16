@@ -7,7 +7,8 @@ import { defaultAuth } from './auth-stub'
 import { AnnotationDrawer } from './drawer'
 import { AnnotationOverlay } from './overlay'
 import { clearReporterName, localStorageReporter, setReporterName } from './reporter'
-import type { Annotation, AnnotationAnchor } from './types'
+import { defaultScreenshotCapture, wrapWithScreenshot } from './screenshot'
+import type { Annotation, AnnotationAnchor, ScreenshotCaptureFn } from './types'
 import { AnnotationWidget, type AuditEvent, TravisEatsBugs, wrapWithAudit } from './widget'
 
 describe('Annotation type assignability', () => {
@@ -519,6 +520,97 @@ describe('reporter mode (localStorage-backed identity)', () => {
     expect(draft).toBeNull()
     overlay.unmount()
     document.body.removeChild(surface)
+  })
+})
+
+describe('wrapWithScreenshot', () => {
+  it('fires the capture callback before create and attaches the result', async () => {
+    const api = new MemoryAdapter()
+    const capture: ScreenshotCaptureFn = vi.fn(async () => ({
+      url: 'data:image/png;base64,fake',
+      w: 320,
+      h: 200,
+    }))
+    const wrapped = wrapWithScreenshot(api, capture, 'drawer')
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'with screenshot',
+    })
+    expect(capture).toHaveBeenCalledTimes(1)
+    expect(created.screenshot).toEqual({
+      url: 'data:image/png;base64,fake',
+      w: 320,
+      h: 200,
+    })
+  })
+
+  it('proceeds without a screenshot when capture returns null', async () => {
+    const api = new MemoryAdapter()
+    const wrapped = wrapWithScreenshot(api, async () => null, 'overlay')
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'no shot',
+    })
+    expect(created.screenshot).toBeUndefined()
+    expect(created.body).toBe('no shot')
+  })
+
+  it('swallows capture errors so create still resolves', async () => {
+    const api = new MemoryAdapter()
+    const wrapped = wrapWithScreenshot(
+      api,
+      async () => {
+        throw new Error('capture blew up')
+      },
+      'drawer',
+    )
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'still lands',
+    })
+    expect(created.body).toBe('still lands')
+    expect(created.screenshot).toBeUndefined()
+  })
+
+  it('passes the render-mode context to the capture callback', async () => {
+    const api = new MemoryAdapter()
+    const received: Array<{ renderMode: string }> = []
+    const capture: ScreenshotCaptureFn = async (ctx) => {
+      received.push({ renderMode: ctx.renderMode })
+      return null
+    }
+    const wrapped = wrapWithScreenshot(api, capture, 'overlay')
+    await wrapped.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+    expect(received[0]?.renderMode).toBe('overlay')
+  })
+
+  it('forwards list / update / delete unchanged', async () => {
+    const api = new MemoryAdapter()
+    const capture: ScreenshotCaptureFn = vi.fn(async () => null)
+    const wrapped = wrapWithScreenshot(api, capture, 'drawer')
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'one',
+    })
+    capture.mockClear?.()
+    await wrapped.list()
+    await wrapped.update(created.id, { body: 'two' })
+    await wrapped.delete(created.id)
+    // No further screenshot captures for list / update / delete.
+    expect(capture).toHaveBeenCalledTimes(0)
+  })
+})
+
+describe('defaultScreenshotCapture', () => {
+  it('is exported as a callable function', () => {
+    // The real capture path hits the DOM-to-canvas pipeline which
+    // happy-dom doesn't fully implement (no foreignObject serialize,
+    // no canvas rasterize). The function returns null OR a data URL at
+    // runtime; both shapes are valid. We assert the exported surface
+    // here; behavior is exercised by wrapWithScreenshot tests above
+    // using an injected mock capture function (which is what hosts
+    // actually do).
+    expect(typeof defaultScreenshotCapture).toBe('function')
   })
 })
 

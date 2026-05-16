@@ -96,6 +96,7 @@ export class LocalStorageAdapter implements ApiAdapter {
       modifiedAt: ts,
       state: 'open',
       ...(input.severity ? { severity: input.severity } : {}),
+      ...(input.screenshot ? { screenshot: input.screenshot } : {}),
     }
     this.memory.push(annotation)
     this.persist()
@@ -154,6 +155,7 @@ function synth(input: CreateInput, ts: number, author: AuthorRef): Annotation {
     modifiedAt: ts,
     state: 'open',
     ...(input.severity ? { severity: input.severity } : {}),
+    ...(input.screenshot ? { screenshot: input.screenshot } : {}),
   }
 }
 

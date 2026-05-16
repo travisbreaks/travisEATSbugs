@@ -9,7 +9,8 @@
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 import { AnnotationOverlay, type OverlayHeaderMode, type OverlayOpts } from './overlay'
-import type { Annotation, CreateInput, UpdatePatch } from './types'
+import { wrapWithScreenshot } from './screenshot'
+import type { Annotation, CreateInput, ScreenshotCaptureFn, UpdatePatch } from './types'
 
 export type { ReporterPromptConfig } from './drawer'
 
@@ -106,6 +107,13 @@ export type WidgetOpts = {
    * Name persists to localStorage. Plumbs through to drawer + overlay.
    */
   reporterPrompt?: ReporterPromptConfig
+  /**
+   * Capture a screenshot before each `create` and thread it through as
+   * `CreateInput.screenshot`. Pass `defaultScreenshotCapture` from
+   * `screenshot.ts` for a modern-screenshot data URL, or your own
+   * function that uploads to R2 / S3 and returns the public URL.
+   */
+  screenshotCapture?: ScreenshotCaptureFn
 } & WidgetMount
 
 export class AnnotationWidget {
@@ -115,9 +123,17 @@ export class AnnotationWidget {
 
   constructor(opts: WidgetOpts) {
     this.mode = opts.renderMode
-    // Wrap the host adapter so drawer + overlay don't need to know about
-    // onAudit. If no onAudit set, this is a no-op identity wrap.
-    const api = opts.onAudit ? wrapWithAudit(opts.api, opts.onAudit) : opts.api
+    // Wrap the host adapter through the optional screenshot + audit
+    // hooks. Order matters: screenshot wraps the inner adapter first
+    // so the audit hook sees the enriched annotation (with screenshot)
+    // when it fires `create`.
+    let api = opts.api
+    if (opts.screenshotCapture) {
+      api = wrapWithScreenshot(api, opts.screenshotCapture, opts.renderMode)
+    }
+    if (opts.onAudit) {
+      api = wrapWithAudit(api, opts.onAudit)
+    }
     if (opts.renderMode === 'drawer') {
       const drawerOpts: DrawerOpts = {
         api,
