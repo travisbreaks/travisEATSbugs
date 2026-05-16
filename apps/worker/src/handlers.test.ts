@@ -12,10 +12,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { type WorkerEnv, handle } from './handlers'
 import { signShareToken } from './share-token'
 
-const MIGRATION_PATH = join(
-  __dirname,
-  '../../../packages/adapter-cloudflare/migrations/001_annotations.sql',
-)
+const MIGRATION_PATHS = [
+  join(__dirname, '../../../packages/adapter-cloudflare/migrations/001_annotations.sql'),
+  join(__dirname, '../../../packages/adapter-cloudflare/migrations/002_triage.sql'),
+]
 
 class D1Shim implements D1Like {
   constructor(public sqlite: Database.Database) {}
@@ -85,7 +85,9 @@ describe('worker handlers', () => {
 
   beforeEach(() => {
     sqlite = new Database(':memory:')
-    sqlite.exec(readFileSync(MIGRATION_PATH, 'utf8'))
+    for (const path of MIGRATION_PATHS) {
+      sqlite.exec(readFileSync(path, 'utf8'))
+    }
     env = makeEnv(sqlite)
   })
 
@@ -311,6 +313,104 @@ describe('worker handlers', () => {
       const created = (await createRes.json()) as { author: { id: string; display: string } }
       expect(created.author.id).toBe('reporter-xyz')
       expect(created.author.display).toContain('Reporter')
+    })
+  })
+
+  describe('POST /triage', () => {
+    const memberToken = 'member-token-aaaaaaaa'
+
+    it('returns 503 when ANTHROPIC_API_KEY is unset', async () => {
+      const res = await handle(
+        makeReq('POST', '/triage', {
+          authToken: memberToken,
+          body: { annotation: { id: 'a', body: 'x' } },
+        }),
+        env,
+      )
+      expect(res.status).toBe(503)
+      const body = (await res.json()) as { error: string }
+      expect(body.error).toBe('triage_not_configured')
+    })
+
+    it('returns 403 for share-link (reporter) tokens', async () => {
+      const reporterToken = await signShareToken(
+        {
+          projectId: 'demo',
+          reporterId: 'reporter-y',
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        },
+        SECRET,
+      )
+      const configured = makeEnv(sqlite, {
+        ANTHROPIC_API_KEY: 'sk-test',
+        TRIAGE_FN: async () => ({ severity: 'low', category: 'misc', rationale: 'r' }),
+      })
+      const res = await handle(
+        makeReq('POST', '/triage', {
+          authToken: reporterToken,
+          body: { annotation: { id: 'a', body: 'x' } },
+        }),
+        configured,
+      )
+      expect(res.status).toBe(403)
+    })
+
+    it('returns the structured triage result when the upstream call succeeds', async () => {
+      const stub = async () => ({
+        severity: 'high' as const,
+        category: 'a11y',
+        rationale: 'contrast issue',
+        suggestedAssignee: 'cole',
+      })
+      const configured = makeEnv(sqlite, {
+        ANTHROPIC_API_KEY: 'sk-test',
+        TRIAGE_FN: stub,
+      })
+      const res = await handle(
+        makeReq('POST', '/triage', {
+          authToken: memberToken,
+          body: { annotation: { id: 'a', body: 'contrast is too low' } },
+        }),
+        configured,
+      )
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as {
+        severity: string
+        category: string
+        suggestedAssignee?: string
+      }
+      expect(body.severity).toBe('high')
+      expect(body.category).toBe('a11y')
+      expect(body.suggestedAssignee).toBe('cole')
+    })
+
+    it('returns 502 when the upstream call returns null', async () => {
+      const configured = makeEnv(sqlite, {
+        ANTHROPIC_API_KEY: 'sk-test',
+        TRIAGE_FN: async () => null,
+      })
+      const res = await handle(
+        makeReq('POST', '/triage', {
+          authToken: memberToken,
+          body: { annotation: { id: 'a', body: 'x' } },
+        }),
+        configured,
+      )
+      expect(res.status).toBe(502)
+      const body = (await res.json()) as { error: string }
+      expect(body.error).toBe('triage_upstream_failed')
+    })
+
+    it('returns 400 when the body lacks an annotation', async () => {
+      const configured = makeEnv(sqlite, {
+        ANTHROPIC_API_KEY: 'sk-test',
+        TRIAGE_FN: async () => ({ severity: 'low', category: 'misc', rationale: 'r' }),
+      })
+      const res = await handle(
+        makeReq('POST', '/triage', { authToken: memberToken, body: { recent: [] } }),
+        configured,
+      )
+      expect(res.status).toBe(400)
     })
   })
 })

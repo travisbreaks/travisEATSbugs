@@ -184,8 +184,9 @@ function validatePatch(patch: UpdatePatch): void {
   const hasResolvedPR = 'resolvedPR' in patch
   const resolvedPR = hasResolvedPR ? (patch as { resolvedPR: number | null }).resolvedPR : undefined
   const hasOverlap = 'relatedIds' in patch || 'dupOf' in patch || 'resolutionNote' in patch
+  const hasTriage = 'triage' in patch
   const isReopen = hasResolvedPR && resolvedPR === null
-  if (hasBody && (hasResolvedPR || hasOverlap)) {
+  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage)) {
     throw new Error(
       'LocalStorageAdapter: body edit cannot be combined with resolution or overlap fields',
     )
@@ -193,7 +194,12 @@ function validatePatch(patch: UpdatePatch): void {
   if (isReopen && hasOverlap) {
     throw new Error('LocalStorageAdapter: reopen patch cannot carry overlap fields')
   }
-  if (!hasBody && !hasResolvedPR && !hasOverlap) {
+  if (hasTriage && (hasResolvedPR || hasOverlap)) {
+    throw new Error(
+      'LocalStorageAdapter: triage patch cannot be combined with resolution or overlap fields',
+    )
+  }
+  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage) {
     throw new Error('LocalStorageAdapter: empty patch')
   }
 }
@@ -232,6 +238,14 @@ function applyPatch(
       ...(resolvePatch.resolutionNote ? { resolutionNote: resolvePatch.resolutionNote } : {}),
       ...(resolvePatch.relatedIds ? { relatedIds: resolvePatch.relatedIds } : {}),
       ...(resolvePatch.dupOf ? { dupOf: resolvePatch.dupOf } : {}),
+      modifiedAt: ts,
+    }
+  }
+  if ('triage' in patch) {
+    const triagePatch = patch as Extract<UpdatePatch, { triage: unknown }>
+    return {
+      ...existing,
+      triage: { ...triagePatch.triage, triagedAt: triagePatch.triage.triagedAt ?? ts },
       modifiedAt: ts,
     }
   }

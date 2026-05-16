@@ -58,6 +58,33 @@ export type AnnotationAnchor =
       y: number
     }
 
+/**
+ * Output of an AI triage pass. Returned by a `TriageFn` and persisted on
+ * the Annotation alongside the host's manual classification. The widget
+ * stores the result verbatim; consumers can decide whether to display it
+ * raw, surface it as a suggestion the reporter can accept/reject, or
+ * promote `dupeOf` into the canonical `Annotation.dupOf` via a follow-up
+ * overlap patch.
+ *
+ * Producers (typically a Cloudflare Worker route hitting Claude with
+ * structured output) MUST return values from this exact shape; unknown
+ * fields are dropped on serialization so the on-disk shape stays stable
+ * across model upgrades.
+ */
+export type TriageResult = {
+  severity: 'low' | 'medium' | 'high'
+  category: string
+  suggestedAssignee?: string
+  dupeOf?: string
+  /** Free-form rationale from the model. Optional and not indexed; useful
+   * for debugging triage decisions in the inbox UI. Hosts that want a
+   * compact on-disk shape can strip this before persisting. */
+  rationale?: string
+  /** Unix ms when triage ran. Adapters that don't set this default to the
+   * adapter's `now()` at patch time. */
+  triagedAt?: number
+}
+
 export type Annotation = {
   id: string
   anchor: AnnotationAnchor
@@ -75,12 +102,18 @@ export type Annotation = {
   severity?: 'low' | 'medium' | 'high'
   thread?: ThreadEntry[]
   screenshot?: { url: string; w: number; h: number }
+  /** Result of the most recent AI triage pass (v0.5 onCreate hook).
+   * Optional and additive: adapters that don't know about triage carry
+   * the field through opaquely; consumers that don't want it ignore it. */
+  triage?: TriageResult
 }
 
 /**
  * PATCH shapes mirror Pivotal's discriminated PATCH surface
  * (body edit | resolve | reopen | overlap-only). Never mix body + resolution
- * in the same patch.
+ * in the same patch. Triage is its own variant so the AI onCreate flow
+ * writes a structurally distinct patch from human edits; mixing triage
+ * with body/resolution/overlap is rejected at the adapter boundary.
  */
 export type UpdatePatch =
   | { body: string }
@@ -92,6 +125,7 @@ export type UpdatePatch =
     }
   | { resolvedPR: null }
   | { relatedIds?: string[]; dupOf?: string }
+  | { triage: TriageResult }
 
 export type AnchorQuery = { mode: 'route'; path?: string } | { mode: 'spatial'; surfaceId?: string }
 

@@ -11,7 +11,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CloudflareAdapter } from './cloudflare-adapter'
 import type { D1Like, D1PreparedStatementLike } from './types'
 
-const MIGRATION_PATH = join(__dirname, '../migrations/001_annotations.sql')
+const MIGRATION_PATHS = [
+  join(__dirname, '../migrations/001_annotations.sql'),
+  join(__dirname, '../migrations/002_triage.sql'),
+]
 
 class D1Shim implements D1Like {
   constructor(public sqlite: Database.Database) {}
@@ -52,8 +55,9 @@ function makeAdapter(now = () => 1700000000000): {
   sqlite: Database.Database
 } {
   const sqlite = new Database(':memory:')
-  const sql = readFileSync(MIGRATION_PATH, 'utf8')
-  sqlite.exec(sql)
+  for (const path of MIGRATION_PATHS) {
+    sqlite.exec(readFileSync(path, 'utf8'))
+  }
   const adapter = new CloudflareAdapter({
     db: new D1Shim(sqlite),
     currentUser: { id: 'tester', display: 'Tester' },
@@ -277,6 +281,53 @@ describe('CloudflareAdapter', () => {
         .prepare('SELECT action FROM annotation_audit_log ORDER BY id ASC')
         .all() as Array<{ action: string }>
       expect(rows.map((r) => r.action)).toEqual(['create', 'body_edit', 'resolve', 'delete'])
+    })
+  })
+
+  describe('triage', () => {
+    it('writes a triage patch and round-trips on list', async () => {
+      const created = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+      const triaged = await adapter.update(created.id, {
+        triage: {
+          severity: 'high',
+          category: 'a11y',
+          suggestedAssignee: 'cole',
+          dupeOf: 'prior-id',
+          rationale: 'contrast 2.1:1',
+          triagedAt: 1700000000999,
+        },
+      })
+      expect(triaged.triage?.severity).toBe('high')
+      expect(triaged.triage?.category).toBe('a11y')
+      expect(triaged.triage?.suggestedAssignee).toBe('cole')
+      expect(triaged.triage?.dupeOf).toBe('prior-id')
+      expect(triaged.triage?.rationale).toBe('contrast 2.1:1')
+      expect(triaged.triage?.triagedAt).toBe(1700000000999)
+
+      const list = await adapter.list()
+      expect(list[0]?.triage?.severity).toBe('high')
+    })
+
+    it('rejects mixing triage with body, resolution, or overlap', async () => {
+      const created = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+      await expect(
+        adapter.update(created.id, {
+          triage: { severity: 'low', category: 'misc' },
+          dupOf: 'some-id',
+          // biome-ignore lint/suspicious/noExplicitAny: testing illegal patch shape
+        } as any),
+      ).rejects.toThrow(/triage patch cannot/)
+    })
+
+    it('writes a triage audit row', async () => {
+      const created = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+      await adapter.update(created.id, {
+        triage: { severity: 'low', category: 'copy' },
+      })
+      const rows = sqlite
+        .prepare('SELECT action FROM annotation_audit_log ORDER BY id ASC')
+        .all() as Array<{ action: string }>
+      expect(rows.map((r) => r.action)).toEqual(['create', 'triage'])
     })
   })
 })

@@ -63,8 +63,7 @@ Live deploy at `eats.travisfixes.com` is the only remaining v0.2 item (needs `wr
 ## v0.5: Triage + capture + animation polish
 
 - [x] Screenshot capture (`modern-screenshot`): `defaultScreenshotCapture` + `wrapWithScreenshot` helpers in `screenshot.ts`; `screenshotCapture` option on `WidgetOpts` plumbs through. Widget facade composes screenshot + audit wraps so drawer / overlay don't need to know. Adapters carry the `Annotation.screenshot` field. Default uses a data URL (demo-grade); hosts inject R2-upload variants for production.
-- [ ] `onCreate` webhook to AI triage worker (opt-in, no triage URL = no AI call)
-- [ ] Claude classifier returns `{ severity, category, suggested_assignee, dupe_of? }` written back as W3C `body` field
+- [x] AI triage `onCreate` hook (opt-in, no `ANTHROPIC_API_KEY` = no AI call): widget-side `wrapWithTriage` + `httpTriage` helpers; worker-side `POST /triage` route calls Claude (Sonnet 4.6 by default) with tool-use forced structured output, returns `{ severity, category, suggestedAssignee?, dupeOf?, rationale }`. Result writes back via a discriminated `{ triage }` UpdatePatch variant; persisted in dedicated columns via migration `002_triage.sql`. Reporter-mode (share-link) tokens get 403 on the triage route; only member tokens can spend Anthropic credits.
 - [ ] Sticky-note Motion animation: paper texture, subtle tilt on rest, lift on hover, drag-to-reposition
 - [x] Real-DOM anchoring fully hardened against page mutations: triple-selector now full (CSS via `@medv/finder` + XPath + W3C text-quote + viewport box). Hosts that need to re-anchor a stale CSS selector can fall through to XPath or text-quote.
 - [ ] W3C Web Annotation Data Model on-disk shape finalized
