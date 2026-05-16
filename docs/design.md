@@ -1,6 +1,6 @@
 # Design
 
-travisEATSbugs is part of the Travis design family. This doc captures how the widget enforces the family's design canon and how downstream products (Pivotal, Lions Share, Theoria, travisFIXES, travisMAKES, plus any client install) recolor the widget for their own brand.
+travisEATSbugs is part of the Travis design family. This doc captures how the widget enforces the family's design canon and how downstream products (Theoria, travisFIXES, travisMAKES, plus any host install) recolor the widget for their own brand.
 
 ## Sources of truth
 
@@ -43,15 +43,15 @@ Per canon §0, color is not a fixed palette. Roles repeat, values change per hos
 
 ### Per-product theming examples
 
-**Pivotal Agency** (host product):
+**Deep blue host theme:**
 ```css
 :root {
-  --teb-signal: #1a4d8f;            /* Pivotal blue */
+  --teb-signal: #1a4d8f;            /* deep blue */
   --teb-signal-glow: rgba(26, 77, 143, 0.35);
 }
 ```
 
-**Lions Share Digital**:
+**Gold host theme:**
 ```css
 :root {
   --teb-signal: #c9a449;            /* gold accent */
@@ -59,7 +59,7 @@ Per canon §0, color is not a fixed palette. Roles repeat, values change per hos
 }
 ```
 
-**Theoria PWA**:
+**Theoria PWA:**
 ```css
 :root {
   --teb-signal: #7a5fa8;            /* purple-mid */
@@ -71,11 +71,11 @@ Per canon §0, color is not a fixed palette. Roles repeat, values change per hos
 
 ## Brand scope rule
 
-Per Travis's design decision on 2026-05-14: **per-product visual canon**. Each brand (Pivotal, Lions Share, Theoria, travisFIXES, travisMAKES, travisEATSbugs marketing surface) keeps its own distinct visual identity. They share architectural roles and easing curves, not concrete values.
+Per Travis's design decision on 2026-05-14: **per-product visual canon**. Each brand (Theoria, travisFIXES, travisMAKES, travisEATSbugs marketing surface, plus any host install) keeps its own distinct visual identity. They share architectural roles and easing curves, not concrete values.
 
 This means:
-- The widget recolors per host. It does NOT impose travisFIXES pink on a Pivotal install.
-- The marketing site at `eats.travisfixes.com` IS a travisFIXES property and follows the travisFIXES signature (warm void + signal pink + grain + crosshair cursor).
+- The widget recolors per host. It does NOT impose travisFIXES pink on any other install.
+- The marketing site at `eats.travisfixes.com` is a travisFIXES property and follows the travisFIXES signature (warm void + signal pink + grain + crosshair cursor).
 - Documentation pages, playground, and example integrations show the widget recolored to each downstream brand to demonstrate flexibility.
 
 ## The sticky-note pin (v0.1+)
@@ -136,4 +136,4 @@ Per canon §11 plus widget-specific:
 - [ ] No spinner introduced
 - [ ] No "Oops!" / "Hope this helps" / "Let's build the future" copy
 - [ ] Bundle size delta < 5KB gzipped (or justified in PR)
-- [ ] Tested on the three reference recolors (Pivotal blue, Lions Share gold, default pink)
+- [ ] Tested on the three reference recolors (deep blue, gold, default pink)

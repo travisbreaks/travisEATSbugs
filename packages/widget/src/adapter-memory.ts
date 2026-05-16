@@ -3,8 +3,8 @@
  *
  * Single Map keyed by annotation id. Generates `local-${ts}-${rand}` ids.
  * Validates UpdatePatch shapes: body OR resolution OR reopen OR overlap, never
- * combined (mirrors Pivotal `/api/page-notes` PATCH discrimination from
- * pivotal-extraction-audit-2026-05-15.md §1).
+ * combined (strict PATCH discrimination; see docs/architecture.md for the
+ * rationale behind disallowing mixed-shape patches at the adapter boundary).
  */
 
 import type { ApiAdapter } from './adapters'
@@ -138,7 +138,7 @@ function matchState(a: Annotation, state: ListQuery['state']): boolean {
  *   - reopen (resolvedPR === null)
  *   - overlap-only (relatedIds / dupOf without resolvedPR)
  *
- * Mixing body + resolution is rejected (Pivotal route.ts behavior).
+ * Mixing body + resolution is rejected at the adapter boundary.
  */
 function validatePatch(patch: UpdatePatch): void {
   const hasBody = 'body' in patch && typeof (patch as { body?: unknown }).body === 'string'

@@ -1,11 +1,11 @@
 /**
- * Overlay render mode (Lion's Share pattern).
+ * Overlay render mode.
  *
  * Mounted onto a host-provided surface element. Click-to-place spatial pins,
  * numbered markers positioned by %, sidebar list with inline thread display,
  * resolve/reopen verb, optional faux-Chrome header strip.
  *
- * Source: docs/lions-share-pin-annotations-audit-2026-05-15.md §1, §6, §7.
+ * See docs/architecture.md for the overlay UX contract.
  */
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
@@ -882,7 +882,7 @@ export class AnnotationOverlay {
         await this.opts.api.update(a.id, { resolvedPR: null })
       } else {
         // Overlay mode doesn't capture a PR number; use 0 as the "resolved via toggle" sentinel,
-        // matching Pivotal's no-action-PR convention from seed-page-notes-resolution.sql.
+        // mirroring the seed convention for resolutions that didn't land via a tracked PR.
         await this.opts.api.update(a.id, { resolvedPR: 0 })
       }
       await this.load()

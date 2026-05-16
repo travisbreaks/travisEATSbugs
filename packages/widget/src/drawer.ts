@@ -1,19 +1,18 @@
 /**
- * Drawer render mode (Pivotal pattern).
+ * Drawer render mode.
  *
  * Shadow-DOM-isolated floating panel that:
  *   - Lists annotations for the current route
  *   - Compose textarea with Cmd/Ctrl+Enter submit
  *   - Per-item edit / delete / resolve / reopen actions
- *   - Optimistic clear-on-submit (race-condition fix from Pivotal)
- *   - Refocus textarea after save (Pivotal refocus fix)
+ *   - Optimistic clear-on-submit (avoids the double-submit race)
+ *   - Refocus textarea after save (so consecutive notes work)
  *   - prefers-reduced-motion kills slide animation
  *
  * The widget owns no I/O: every mutation goes through the ApiAdapter passed in.
  *
- * Sources:
- * - docs/pivotal-extraction-audit-2026-05-15.md §2 (drawer UX)
- * - docs/design.md §"Non-negotiable rules"
+ * See docs/architecture.md for the drawer UX rationale and docs/design.md
+ * §"Non-negotiable rules" for the motion + accessibility contract.
  */
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
@@ -558,9 +557,9 @@ export class AnnotationDrawer {
   }
 
   /**
-   * Optimistic-clear pattern (Pivotal race-condition fix). Clear the textarea
-   * synchronously on submit-click, then post. If the post fails, restore the
-   * draft so the user doesn't lose it.
+   * Optimistic-clear pattern (avoids the double-submit race). Clear the
+   * textarea synchronously on submit-click, then post. If the post fails,
+   * restore the draft so the user doesn't lose it.
    */
   private async submitCompose(textarea: HTMLTextAreaElement): Promise<void> {
     const body = this.composeValue.trim()
@@ -584,7 +583,7 @@ export class AnnotationDrawer {
             }
       await this.opts.api.create({ anchor, body })
       await this.load()
-      // Refocus (Pivotal refocus fix) so consecutive notes work.
+      // Refocus the textarea so consecutive notes work.
       setTimeout(() => textarea.focus(), 0)
     } catch {
       // Restore draft.

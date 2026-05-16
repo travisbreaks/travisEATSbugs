@@ -23,7 +23,7 @@ const SEED: Annotation[] = [
       xpath: '/html/body/main/article/section/div[1]/h1',
     },
     body: 'The hero copy needs a tighter rhythm — the second line lands harder than the first.',
-    author: { id: 'seed-author', display: 'Cole' },
+    author: { id: 'seed-author', display: 'Alex' },
     createdAt: Date.now() - 1000 * 60 * 60 * 2,
     modifiedAt: Date.now() - 1000 * 60 * 60 * 2,
     state: 'open',

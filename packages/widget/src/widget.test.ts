@@ -385,18 +385,18 @@ describe('reporter mode (localStorage-backed identity)', () => {
   })
 
   it('setReporterName + localStorageReporter round-trip', async () => {
-    setReporterName('Cole', { namespace: 'test-rt' })
+    setReporterName('Alex', { namespace: 'test-rt' })
     const auth = localStorageReporter({ namespace: 'test-rt' })
     const user = await auth.getCurrentUser()
-    expect(user?.display).toBe('Cole')
+    expect(user?.display).toBe('Alex')
     expect(user?.id).toMatch(/^reporter-/)
   })
 
   it('setReporterName preserves the id when renaming', async () => {
-    const a = setReporterName('Cole', { namespace: 'test-rename' })
-    const b = setReporterName('Cole Cousin', { namespace: 'test-rename' })
+    const a = setReporterName('Alex', { namespace: 'test-rename' })
+    const b = setReporterName('Alex Lee', { namespace: 'test-rename' })
     expect(b.id).toBe(a.id)
-    expect(b.display).toBe('Cole Cousin')
+    expect(b.display).toBe('Alex Lee')
   })
 
   it('setReporterName throws on empty name', () => {

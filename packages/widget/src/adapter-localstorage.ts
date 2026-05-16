@@ -3,10 +3,10 @@
  *
  * Namespaced key per instance. SSR-safe: every method checks `typeof window`.
  * Catches quota errors silently and keeps the in-memory mirror so the session
- * continues to function. The Lions-Share shadow-state pattern is NOT needed
- * here because this adapter owns the data fully (no immutable seed).
+ * continues to function. No shadow-state mirror is needed here because this
+ * adapter owns the data fully (no immutable seed to reconcile against).
  *
- * Source: docs/lions-share-pin-annotations-audit-2026-05-15.md §1 (persistence).
+ * See docs/architecture.md for the persistence contract.
  */
 
 import type { ApiAdapter } from './adapters'

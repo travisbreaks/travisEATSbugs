@@ -1,8 +1,8 @@
 /**
  * Default AuthAdapter for playground + tests.
  *
- * Returns a fixed demo user. Real consumers (Pivotal, Lion's Share) inject
- * their own AuthAdapter wired to session state + role taxonomy.
+ * Returns a fixed demo user. Real consumers inject their own AuthAdapter
+ * wired to session state + role taxonomy.
  */
 
 import type { AuthAdapter } from './adapters'

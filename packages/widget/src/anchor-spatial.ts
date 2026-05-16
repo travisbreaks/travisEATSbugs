@@ -2,13 +2,14 @@
  * Capture a spatial-mode anchor from a click target on a surface element.
  *
  * Returns x,y as % of the surface's bounding rect, clamped to [4, 96]
- * horizontally and [8, 94] vertically (Lion's Share pattern).
+ * horizontally and [8, 94] vertically so pins never sit flush against the
+ * surface edge.
  *
  * If `target === surface` (the surface itself was clicked), the caller should
  * pass click coords via the optional 4th arg. Otherwise the function uses the
  * target's bounding-rect center.
  *
- * Source: docs/lions-share-pin-annotations-audit-2026-05-15.md §1 (click-to-place).
+ * See docs/architecture.md for the click-to-place contract.
  */
 
 import type { AnnotationAnchor } from './types'

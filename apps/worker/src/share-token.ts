@@ -1,11 +1,11 @@
 /**
  * Share-link token primitive.
  *
- * Reporters (clients leaving annotations) don't sign up. The host
- * (Pivotal, Lion's Share, etc.) hands them a share URL containing an
- * HMAC-signed token that scopes them to a specific project + reporter
- * identity for a bounded window. The worker verifies the token on
- * every request that doesn't carry a member token.
+ * Reporters (clients leaving annotations) don't sign up. The host app
+ * hands them a share URL containing an HMAC-signed token that scopes
+ * them to a specific project + reporter identity for a bounded window.
+ * The worker verifies the token on every request that doesn't carry a
+ * member token.
  *
  * Token shape: `<base64url(payload)>.<base64url(signature)>`
  *   payload = JSON: { projectId, reporterId, expiresAt }  (seconds)

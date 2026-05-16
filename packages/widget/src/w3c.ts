@@ -91,12 +91,12 @@ export type TebExtension = {
   state: 'open' | 'resolved'
   /** Optional manual severity tag. */
   severity?: 'low' | 'medium' | 'high'
-  /** Resolution provenance (Pivotal mig 045 lineage). */
+  /** Resolution provenance. */
   resolvedPR?: number
   resolvedAt?: number
   resolvedBy?: string
   resolutionNote?: string
-  /** Overlap tracking (Pivotal mig 058 lineage). */
+  /** Overlap tracking (related-ids + dup-of). */
   relatedIds?: string[]
   dupOf?: string
   /** AI triage onCreate hook result. */

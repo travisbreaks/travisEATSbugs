@@ -1,10 +1,9 @@
--- travisEATSbugs v0.2 schema, single migration. Consolidates the schema
--- evolution that Pivotal page-notes went through (mig 043 base + mig 045
--- resolution + mig 058 overlap) into one clean shape for the unified
--- Annotation type from packages/widget/src/types.ts.
+-- travisEATSbugs v0.2 schema, single migration. Consolidates the page-notes
+-- schema evolution (base + resolution + overlap) into one clean shape for the
+-- unified Annotation type from packages/widget/src/types.ts.
 --
--- Key shape differences vs Pivotal page_notes:
---   * Unified `anchor_mode` column (route | spatial) replaces the implicit
+-- Shape decisions:
+--   * Unified `anchor_mode` column (route | spatial) replaces an implicit
 --     page_path-only model. Spatial-anchored annotations carry x/y % and a
 --     surface_id; route-anchored ones can also carry a CSS selector,
 --     W3C text-quote fields, and a viewport box for screenshot regions.
@@ -12,12 +11,12 @@
 --     IDs and any UUIDs the host may pass in).
 --   * Author is split into id + display + optional avatar URL (the
 --     widget's AuthorRef shape) so the adapter doesn't need a join.
---   * Resolution + overlap fields land at v0.1 (inherited primitives from
---     Pivotal mig 045 + 058), not a later migration.
+--   * Resolution + overlap fields land at v0.1 as core primitives, not a
+--     later migration.
 --   * Screenshot URL is reserved for v0.5; columns added now so v0.5
 --     ships without another ALTER.
 --
--- Indexes mirror Pivotal's query patterns: per-path-per-user list,
+-- Indexes target the common query patterns: per-path-per-user list,
 -- per-surface list, per-author timeline, inbox resolution sort, dup-of
 -- reverse lookup.
 
@@ -53,13 +52,13 @@ CREATE TABLE IF NOT EXISTS annotations (
   state TEXT NOT NULL DEFAULT 'open' CHECK(state IN ('open', 'resolved')),
   severity TEXT CHECK(severity IS NULL OR severity IN ('low', 'medium', 'high')),
 
-  -- Resolution (Pivotal mig 045 inheritance)
+  -- Resolution
   resolved_pr INTEGER,
   resolved_at INTEGER,
   resolved_by TEXT,
   resolution_note TEXT,
 
-  -- Overlap (Pivotal mig 058 inheritance)
+  -- Overlap (related-ids + dup-of)
   related_ids TEXT,                              -- JSON array of annotation ids
   dup_of TEXT REFERENCES annotations(id),
 

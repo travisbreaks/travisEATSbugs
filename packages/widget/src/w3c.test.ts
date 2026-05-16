@@ -32,7 +32,7 @@ function fixedAnnotation(overrides: Partial<Annotation> = {}): Annotation {
       viewport: { x: 10, y: 20, w: 200, h: 80 },
     },
     body: 'This headline is buried.',
-    author: { id: 'cole', display: 'Cole', avatarUrl: 'https://example/avatar.png' },
+    author: { id: 'alex', display: 'Alex', avatarUrl: 'https://example/avatar.png' },
     createdAt: 1700000000000,
     modifiedAt: 1700000001000,
     state: 'open',
@@ -76,9 +76,9 @@ describe('toW3C', () => {
 
   it('maps creator with avatarUrl into the teb: extension', () => {
     const w3c = toW3C(fixedAnnotation())
-    expect(w3c.creator.id).toBe('urn:teb:author:cole')
+    expect(w3c.creator.id).toBe('urn:teb:author:alex')
     expect(w3c.creator.type).toBe('Person')
-    expect(w3c.creator.name).toBe('Cole')
+    expect(w3c.creator.name).toBe('Alex')
     expect(w3c.creator['teb:avatarUrl']).toBe('https://example/avatar.png')
   })
 
@@ -133,7 +133,7 @@ describe('toW3C', () => {
         severity: 'medium',
         resolvedPR: 142,
         resolvedAt: 1700000005000,
-        resolvedBy: 'cole',
+        resolvedBy: 'alex',
         resolutionNote: 'shipped',
         relatedIds: ['other-1', 'other-2'],
         dupOf: 'other-3',
@@ -150,7 +150,7 @@ describe('toW3C', () => {
       severity: 'medium',
       resolvedPR: 142,
       resolvedAt: 1700000005000,
-      resolvedBy: 'cole',
+      resolvedBy: 'alex',
       resolutionNote: 'shipped',
       relatedIds: ['other-1', 'other-2'],
       dupOf: 'other-3',
@@ -169,14 +169,14 @@ describe('fromW3C', () => {
     const original = fixedAnnotation({
       resolvedPR: 142,
       resolvedAt: 1700000005000,
-      resolvedBy: 'cole',
+      resolvedBy: 'alex',
       resolutionNote: 'shipped',
       relatedIds: ['x', 'y'],
       dupOf: 'z',
       triage: {
         severity: 'high',
         category: 'a11y',
-        suggestedAssignee: 'cole',
+        suggestedAssignee: 'alex',
         rationale: 'contrast',
         triagedAt: 1700000003000,
       },
@@ -205,7 +205,7 @@ describe('fromW3C', () => {
       id: 'local-1700000000000-abc',
       anchor: { mode: 'route', path: '/about', selector: 'h1.hero' },
       body: 'plain text',
-      author: { id: 'cole', display: 'Cole' },
+      author: { id: 'alex', display: 'Alex' },
       createdAt: 1700000000000,
       modifiedAt: 1700000001000,
       state: 'open',
@@ -223,9 +223,9 @@ describe('fromW3C', () => {
       created: '2023-11-14T22:13:20.000Z',
       modified: '2023-11-14T22:13:20.000Z',
       creator: {
-        id: 'http://example.org/users/cole',
+        id: 'http://example.org/users/alex',
         type: 'Person' as const,
-        name: 'Cole',
+        name: 'Alex',
       },
       body: [{ type: 'TextualBody' as const, value: 'hello', format: 'text/plain' }],
       target: {
@@ -237,7 +237,7 @@ describe('fromW3C', () => {
     const recovered = fromW3C(specOnly as any)
     expect(recovered.state).toBe('open')
     expect(recovered.id).toBe('http://example.org/anno/5')
-    expect(recovered.author.id).toBe('http://example.org/users/cole')
+    expect(recovered.author.id).toBe('http://example.org/users/alex')
     expect(recovered.body).toBe('hello')
     if (recovered.anchor.mode !== 'route') throw new Error('expected route')
     expect(recovered.anchor.selector).toBe('h1')

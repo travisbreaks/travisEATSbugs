@@ -1,6 +1,6 @@
 # Roadmap
 
-Aligned to `docs/extraction-strategy-2026-05-15.md`. The consolidation around Pivotal + Lion's Share as primary consumers reshaped the original phase order. The earlier roadmap survives in git history if needed.
+See `docs/architecture.md` for the contract this roadmap delivers against. Phase order reflects the consolidation around dual host integration patterns (drawer mode for CMS-style hosts, overlay mode for spatial-pin hosts).
 
 ## v0: Scaffold (2026-05-14, shipped)
 
@@ -19,13 +19,13 @@ Aligned to `docs/extraction-strategy-2026-05-15.md`. The consolidation around Pi
 - [x] Three adapter contracts: `ApiAdapter`, `AuthAdapter`, `ThemeAdapter`
 - [x] In-memory adapter (playground default)
 - [x] localStorage adapter (browser-only, prototype-friendly)
-- [x] Dual render modes: `drawer` (Pivotal pattern) + `overlay` (Lion's Share pattern)
+- [x] Dual render modes: `drawer` (route-anchored) + `overlay` (spatial pins)
 - [x] Click-to-mark mode toggle, wired to the existing v0 bug button (playground integration)
 - [~] Triple-selector anchoring: `@medv/finder` + W3C text-quote + viewport shipped; XPath fallback deferred to v0.2
 - [x] Spatial anchor capture (x, y percent, clamped to canvas bounds)
 - [x] Compose / edit / delete primitives
-- [x] Resolution + reopen verbs (resolved_pr column inherited from Pivotal mig 045)
-- [x] Overlap tracking (related_ids + dup_of, inherited from Pivotal mig 058)
+- [x] Resolution + reopen verbs (`resolved_pr` column)
+- [x] Overlap tracking (`related_ids` + `dup_of`)
 - [x] CSS custom property theme contract; host pages override at `:root`
 - [x] Playground exercises both render modes against the in-memory adapter
 
@@ -35,7 +35,7 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 - [x] `@travisbreaks/travisEATSbugs-cloudflare` package: D1-backed `ApiAdapter` with full CRUD + UpdatePatch discrimination + audit log table (16/16 tests green, 10 KB ESM)
 - [x] `@travisbreaks/travisEATSbugs-http` package: fetch-backed `ApiAdapter` with REST contract + Authorization header + extra headers (12/12 tests green, 3 KB ESM)
-- [x] Migrations ported from Pivotal page-notes (043 base + 045 resolution + 058 overlap), consolidated into a single `001_annotations.sql` with the unified anchor union schema
+- [x] Migrations consolidate the page-notes schema evolution (base + resolution + overlap) into a single `001_annotations.sql` with the unified anchor union schema
 - [x] Cloudflare Worker live at `https://eats.travisfixes.com` (deployed 2026-05-16). D1 `travisEATSbugs` provisioned (id `9118617e-0f72-401a-82e3-f1031648cb22`), both migrations applied remotely, secrets (`SHARE_TOKEN_SECRET`, `ANTHROPIC_API_KEY`, `MEMBER_TOKENS`) attached via `wrangler secret put` from keychain. Custom domain bound via CF API; cert auto-provisioned. Smoke tests green: unauth 401, member 200, POST round-trip persists, `/triage` returns a real Claude classification end-to-end.
 - [x] Tokenized unguessable share-link mode: HMAC-SHA256 sign + verify primitive at `apps/worker/src/share-token.ts`; worker auth accepts share tokens as scoped-reporter identity. Tested with tamper-detection + expiry edge cases.
 - [x] Reporter name prompt on first comment: `localStorageReporter` AuthAdapter + `setReporterName` / `clearReporterName` helpers + `reporterPrompt` config on drawer + overlay. Prompt blocks compose until a name is set; on submit, name persists to localStorage and adapters with `setCurrentUser` swap identity at runtime. Playground demo at `?reporter`.
@@ -44,21 +44,21 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 **v0.2 complete** (2026-05-16): widget + adapters + worker + share-link tokens + reporter prompt + audit log + bug-button auto-wire + live worker at `eats.travisfixes.com`.
 
-## v0.3: Pivotal cutover
+## v0.3: Host CMS integration (drawer mode)
 
-- [ ] `pivotal-adapter` satisfying ApiAdapter + AuthAdapter + ThemeAdapter using existing auth-stub + D1 binding
-- [ ] Swap `<PageNotesDrawer />` for `<AnnotationWidget renderMode="drawer" adapter={pivotalAdapter} />`
-- [ ] Preserve existing `page_notes` table; widget reads same schema through the adapter
-- [ ] Verify 21/21 smoke green
-- [ ] Stage on preview deploy first, dogfood one full day, then promote (per Travis 2026-05-15 decision)
-- [ ] Cole sees no behavior change
+- [ ] Reference adapter satisfying ApiAdapter + AuthAdapter + ThemeAdapter against a host CMS auth + D1 binding
+- [ ] Swap a host's existing page-notes drawer for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />`
+- [ ] Preserve the existing `page_notes` table; widget reads same schema through the adapter
+- [ ] Verify smoke suite green
+- [ ] Stage on preview deploy first, dogfood one full day, then promote
+- [ ] End-user sees no behavior change
 
-## v0.4: Lion's Share cutover
+## v0.4: Spatial-pin host integration (overlay mode)
 
-- [ ] `lions-share-adapter` (skips the planned localStorage-to-D1 intermediate step; goes straight to widget adapter per Travis 2026-05-15 decision)
-- [ ] Swap `<PinAnnotations />` for `<AnnotationWidget renderMode="overlay" headerMode="mac-chrome" adapter={lionsAdapter} />`
-- [ ] `/tracks` aggregator reads via direct adapter call + injected `inferSeverity` (preserves the 3-day-client-authored heuristic)
-- [ ] Per-client tinted theme via CSS custom properties (existing pattern)
+- [ ] Reference adapter for a spatial-pin consumer (skips the planned localStorage-to-D1 intermediate step; goes straight to widget adapter)
+- [ ] Swap an existing pin-annotations component for `<AnnotationWidget renderMode="overlay" headerMode="mac-chrome" adapter={hostAdapter} />`
+- [ ] Aggregator routes read via direct adapter call + injected `inferSeverity` (preserves any host-authored heuristic)
+- [ ] Per-host tinted theme via CSS custom properties (existing pattern)
 
 ## v0.5: Triage + capture + animation polish
 
@@ -77,7 +77,7 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 - [ ] Jira two-way sync
 - [ ] Slack notification webhook
 
-PR link-back specifically (`resolved_pr` column) ships earlier as a core primitive in v0.1 since it's inherited from Pivotal mig 045. The v0.6 work is the full bidirectional ticket-sync layer on top.
+PR link-back specifically (`resolved_pr` column) ships earlier as a core primitive in v0.1. The v0.6 work is the full bidirectional ticket-sync layer on top.
 
 ## v1.0: Public release
 

@@ -3,13 +3,11 @@
 **Date:** 2026-05-14
 **Status:** v0 scaffold
 
-This document captures the architectural decisions made on day one, sourced from two research docs:
-- [BugHerd and Visual Feedback Tools: Competitive Research](../../pivotal-replacement/docs/research-bugherd-and-comps-2026-05-14.md)
-- [OSS Annotation / Visual-Feedback Research](../../pivotal-replacement/docs/research-oss-annotation-tools-2026-05-14.md)
+This document captures the architectural decisions made on day one, informed by competitive research on BugHerd and the OSS annotation / visual-feedback landscape.
 
 ## Strategic position
 
-travisEATSbugs is not a feature for one product. It's the tool that sits on top of every product Travis ships. Pivotal Agency today (proof-of-concept), Lions Share Digital next, every client beyond. Same widget, same npm package, drops into all of them and lights up immediately.
+travisEATSbugs is not a feature for one product. It's the tool that sits on top of every product it's installed into. Same widget, same npm package, drops into any host app and lights up immediately.
 
 Every design decision optimizes for installability across multiple downstream products, not for any single host.
 
@@ -22,7 +20,7 @@ Every design decision optimizes for installability across multiple downstream pr
 
 ## The white space we're aiming at
 
-No existing tool ships visual feedback + agency project rollups + hours tracking + client lists in one product. We do. Pivotal and Lions Share already have the agency-platform pieces; travisEATSbugs is the feedback layer that makes the bundle defensible.
+No existing tool ships visual feedback + agency project rollups + hours tracking + client lists in one product. travisEATSbugs is the feedback layer that, paired with agency-platform tooling, makes the bundle defensible.
 
 ## Core architecture
 
@@ -124,7 +122,7 @@ No existing OSS project ships "yellow paper, tilt, lift, drag" well. Build from 
 - Motion `whileDrag` + `dragMomentum` for physics-based reposition
 - Color-coded by pin kind: bug (yellow/amber), idea (blue), question (purple), praise (green)
 
-Themeable so each downstream product can override colors, fonts, paper texture. Per-product visual canon means Pivotal pins look Pivotal-y, Lions Share pins look Lions Share-y.
+Themeable so each downstream product can override colors, fonts, paper texture. Per-product visual canon means each host's pins read as that host's brand.
 
 ## Design canon
 
@@ -139,7 +137,7 @@ travisEATSbugs is part of the Travis design family. Every surface (widget, playg
 
 **Color is role-based, not fixed palette.** Widget exposes theme tokens (`--teb-signal`, `--teb-fg`, `--teb-shadow`, etc.) as CSS custom properties on `:host`. Host pages override at `:root`. CSS custom properties pierce Shadow DOM boundaries automatically.
 
-**Per-product visual canon.** Each downstream brand (Pivotal, Lions Share, Theoria, travisFIXES) recolors the widget independently. The widget recolors per host; it does NOT impose any single brand identity. The marketing surface at `eats.travisfixes.com` IS a travisFIXES property and follows the travisFIXES signature.
+**Per-product visual canon.** Each downstream brand recolors the widget independently. The widget recolors per host; it does NOT impose any single brand identity. The marketing surface at `eats.travisfixes.com` is a travisFIXES property and follows the travisFIXES signature.
 
 ## Tech stack
 

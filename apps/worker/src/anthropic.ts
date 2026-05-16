@@ -65,7 +65,7 @@ const TRIAGE_TOOL_SCHEMA = {
       suggested_assignee: {
         type: 'string',
         description:
-          'Optional. Only include if the annotation body explicitly mentions a person or system (e.g. "ask Cole" -> "cole"). Never invent assignees.',
+          'Optional. Only include if the annotation body explicitly mentions a person or system (e.g. "ask alex" -> "alex"). Never invent assignees.',
       },
       dupe_of: {
         type: 'string',

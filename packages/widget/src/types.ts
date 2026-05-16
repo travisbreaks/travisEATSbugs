@@ -1,15 +1,12 @@
 /**
  * Unified data model for travisEATSbugs / AnnotationWidget.
  *
- * Sources:
- * - docs/extraction-strategy-2026-05-15.md (the unified Annotation type)
- * - docs/pivotal-extraction-audit-2026-05-15.md (resolution + overlap + audit columns)
- * - docs/lions-share-pin-annotations-audit-2026-05-15.md (spatial anchor mode)
+ * See docs/architecture.md for the data-model rationale.
  *
- * Covers both Pivotal's route-based anchoring and Lion's Share's spatial pins
- * under one discriminated union. Resolution / overlap / thread / screenshot are
- * optional so v0 consumers can ignore them; the schema is forward-compatible
- * with Pivotal mig 043 + 045 + 058.
+ * Covers both route-based anchoring (drawer mode) and spatial pins (overlay
+ * mode) under one discriminated union. Resolution / overlap / thread /
+ * screenshot are optional so v0 consumers can ignore them; the schema is
+ * forward-compatible with the resolution + overlap + audit-column primitives.
  */
 
 export type AuthorRef = {
@@ -141,7 +138,7 @@ export type Annotation = {
 }
 
 /**
- * PATCH shapes mirror Pivotal's discriminated PATCH surface
+ * PATCH shapes use a strictly-discriminated surface
  * (body edit | resolve | reopen | overlap-only). Never mix body + resolution
  * in the same patch. Triage is its own variant so the AI onCreate flow
  * writes a structurally distinct patch from human edits; the `{ anchor }`

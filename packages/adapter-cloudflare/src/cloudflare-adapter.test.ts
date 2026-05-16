@@ -211,7 +211,7 @@ describe('CloudflareAdapter', () => {
   describe('UpdatePatch discrimination', () => {
     it('rejects mixing body edit with resolution', async () => {
       const created = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
-      // body + resolvedPR is intentionally invalid per Pivotal route.ts behavior
+      // body + resolvedPR is intentionally invalid (mixed-shape patches are rejected)
       await expect(
         adapter.update(created.id, {
           body: 'y',
@@ -262,12 +262,12 @@ describe('CloudflareAdapter', () => {
       sqlite
         .prepare(
           `INSERT INTO annotations (id, anchor_mode, anchor_path, body, author_id, author_display, created_at, modified_at, state)
-           VALUES ('seed-1', 'route', '/', 'two', 'cole', 'Cole', 1, 1, 'open')`,
+           VALUES ('seed-1', 'route', '/', 'two', 'alex', 'Alex', 1, 1, 'open')`,
         )
         .run()
       const authors = await adapter.listAuthors()
       expect(authors).toHaveLength(2)
-      expect(authors.map((a) => a.id).sort()).toEqual(['cole', 'tester'])
+      expect(authors.map((a) => a.id).sort()).toEqual(['alex', 'tester'])
     })
   })
 
@@ -362,7 +362,7 @@ describe('CloudflareAdapter', () => {
         triage: {
           severity: 'high',
           category: 'a11y',
-          suggestedAssignee: 'cole',
+          suggestedAssignee: 'alex',
           dupeOf: 'prior-id',
           rationale: 'contrast 2.1:1',
           triagedAt: 1700000000999,
@@ -370,7 +370,7 @@ describe('CloudflareAdapter', () => {
       })
       expect(triaged.triage?.severity).toBe('high')
       expect(triaged.triage?.category).toBe('a11y')
-      expect(triaged.triage?.suggestedAssignee).toBe('cole')
+      expect(triaged.triage?.suggestedAssignee).toBe('alex')
       expect(triaged.triage?.dupeOf).toBe('prior-id')
       expect(triaged.triage?.rationale).toBe('contrast 2.1:1')
       expect(triaged.triage?.triagedAt).toBe(1700000000999)

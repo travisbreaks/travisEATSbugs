@@ -121,15 +121,15 @@ If the deploy goes sideways, `wrangler rollback` reverts to the previous version
 
 ## Generating a share link
 
-Hosts (Pivotal admin, Lion's Share team) generate share-link tokens by signing a `SharePayload` with the same `SHARE_TOKEN_SECRET`:
+Host apps (admins, team members) generate share-link tokens by signing a `SharePayload` with the same `SHARE_TOKEN_SECRET`:
 
 ```ts
 import { signShareToken } from '@travisbreaks/travisEATSbugs-worker/share-token'
 
 const token = await signShareToken(
   {
-    projectId: 'pivotal',
-    reporterId: 'cole-cousin-jane',
+    projectId: 'my-project',
+    reporterId: 'reporter-jane',
     expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
   },
   process.env.SHARE_TOKEN_SECRET,

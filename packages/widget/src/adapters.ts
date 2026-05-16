@@ -3,9 +3,8 @@
  *
  * The widget owns no I/O. Hosts plug in their own API, auth, and theme.
  *
- * Sources:
- * - docs/extraction-strategy-2026-05-15.md §"Adapter contracts"
- * - docs/pivotal-extraction-audit-2026-05-15.md §9 ("Auth coupling")
+ * See docs/architecture.md for the contract rationale and the auth-coupling
+ * decision (the widget never assumes a session model; hosts inject one).
  */
 
 import type {
