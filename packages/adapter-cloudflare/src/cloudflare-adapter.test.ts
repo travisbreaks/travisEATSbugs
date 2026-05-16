@@ -112,12 +112,13 @@ describe('CloudflareAdapter', () => {
       }
     })
 
-    it('round-trips a route anchor with selector + text-quote + viewport', async () => {
+    it('round-trips a route anchor with selector + xpath + text-quote + viewport', async () => {
       const created = await adapter.create({
         anchor: {
           mode: 'route',
           path: '/about',
           selector: 'h1.hero',
+          xpath: '/html/body/main/h1',
           textQuote: { exact: 'Click', prefix: '', suffix: ' the bug' },
           viewport: { x: 12, y: 24, w: 200, h: 60 },
         },
@@ -128,6 +129,7 @@ describe('CloudflareAdapter', () => {
       const anchor = list[0]?.anchor
       if (anchor && anchor.mode === 'route') {
         expect(anchor.selector).toBe('h1.hero')
+        expect(anchor.xpath).toBe('/html/body/main/h1')
         expect(anchor.textQuote?.exact).toBe('Click')
         expect(anchor.viewport?.w).toBe(200)
       } else {

@@ -229,7 +229,7 @@ describe('LocalStorageAdapter', () => {
 })
 
 describe('captureRouteAnchor', () => {
-  it('captures selector, path, and textQuote from a JSDOM element', () => {
+  it('captures selector, path, xpath, and textQuote from a JSDOM element', () => {
     const wrapper = document.createElement('div')
     wrapper.id = 'wrap-tq'
     wrapper.innerHTML = '<p>prefix-text-here <span class="hot">target text</span> trailing-text</p>'
@@ -240,7 +240,38 @@ describe('captureRouteAnchor', () => {
     if (anchor.mode === 'route') {
       expect(anchor.path).toBeTypeOf('string')
       expect(anchor.selector).toBeTypeOf('string')
+      expect(anchor.xpath).toBeTypeOf('string')
+      // XPath should start at /html (absolute) and reach the span.
+      expect(anchor.xpath?.startsWith('/')).toBe(true)
+      expect(anchor.xpath?.endsWith('/span')).toBe(true)
       expect(anchor.textQuote?.exact).toContain('target text')
+    }
+    document.body.removeChild(wrapper)
+  })
+
+  it('xpath uses positional index when multiple same-tag siblings exist', () => {
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = '<ul><li>a</li><li>b</li><li class="t">target</li></ul>'
+    document.body.appendChild(wrapper)
+    const target = wrapper.querySelector('li.t') as Element
+    const anchor = captureRouteAnchor(target)
+    if (anchor.mode === 'route') {
+      // Third li under the ul; expect the indexed selector for that step.
+      expect(anchor.xpath).toContain('li[3]')
+    }
+    document.body.removeChild(wrapper)
+  })
+
+  it('xpath omits index when the tag is unique under its parent', () => {
+    const wrapper = document.createElement('div')
+    wrapper.id = 'solo-wrap'
+    wrapper.innerHTML = '<section><h2>only header</h2></section>'
+    document.body.appendChild(wrapper)
+    const target = wrapper.querySelector('h2') as Element
+    const anchor = captureRouteAnchor(target)
+    if (anchor.mode === 'route') {
+      // h2 is unique under section -> no positional index needed on that step.
+      expect(anchor.xpath?.endsWith('/section/h2')).toBe(true)
     }
     document.body.removeChild(wrapper)
   })

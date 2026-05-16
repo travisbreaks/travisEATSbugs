@@ -1,17 +1,19 @@
 /**
  * Capture a route-mode anchor from a target element.
  *
- * Produces:
+ * Produces (the "triple-selector" + spatial extras from
+ * docs/architecture.md §"Anchoring"):
  *   - path: normalized window.location.pathname
- *   - selector: `@medv/finder` shortest unique selector if available; otherwise
- *     a minimal parent>child chain with nth-of-type, max depth 6
+ *   - selector: `@medv/finder` shortest unique CSS selector if available;
+ *     otherwise a minimal parent>child chain with nth-of-type, max depth 6
+ *   - xpath: absolute XPath, e.g. /html/body/div[2]/p[1]. Stable across
+ *     class churn that breaks CSS selectors; complementary, not
+ *     redundant.
  *   - textQuote: 60-char exact + 16-char prefix + 16-char suffix from the
  *     element's parent textContent (W3C Web Annotation pattern)
  *   - viewport: getBoundingClientRect snapshot
  *
  * Pure function: no side effects.
- *
- * Source: docs/architecture.md §"Anchoring: triple-selector"
  */
 
 import { finder } from '@medv/finder'
@@ -24,12 +26,14 @@ const SUFFIX_MAX = 16
 
 export function captureRouteAnchor(target: Element): AnnotationAnchor {
   const selector = generateSelector(target)
+  const xpath = generateXPath(target)
   const viewport = getViewport(target)
   const textQuote = getTextQuote(target)
   return {
     mode: 'route',
     path: getNormalizedPath(),
     ...(selector ? { selector } : {}),
+    ...(xpath ? { xpath } : {}),
     ...(textQuote ? { textQuote } : {}),
     ...(viewport ? { viewport } : {}),
   }
@@ -95,6 +99,44 @@ function getViewport(target: Element): Viewport | undefined {
   const r = target.getBoundingClientRect()
   if (!r) return undefined
   return { x: r.x, y: r.y, w: r.width, h: r.height }
+}
+
+/**
+ * Build an absolute XPath, e.g. `/html/body/div[2]/p[1]`.
+ *
+ * Walks from the target up to <html>, recording `tag[positional-index]`
+ * for each step where the tag has multiple same-tag siblings. Drops the
+ * positional index when the tag is unique under its parent (cleaner XPath
+ * + identical match semantics).
+ *
+ * Stops if it hits a non-element parent (e.g. document, ShadowRoot) so
+ * shadow-hosted elements get a partial XPath rooted at the shadow host's
+ * subtree.
+ */
+function generateXPath(target: Element): string | undefined {
+  if (!(target instanceof Element)) return undefined
+  const segments: string[] = []
+  let el: Element | null = target
+  while (el && el.nodeType === 1 /* ELEMENT_NODE */) {
+    const tag = el.tagName.toLowerCase()
+    const parent = el.parentElement
+    if (!parent) {
+      segments.unshift(tag)
+      break
+    }
+    const sameTagSiblings = Array.from(parent.children).filter(
+      (c) => c.tagName === el?.tagName,
+    )
+    if (sameTagSiblings.length === 1) {
+      segments.unshift(tag)
+    } else {
+      const idx = sameTagSiblings.indexOf(el) + 1
+      segments.unshift(`${tag}[${idx}]`)
+    }
+    el = parent
+  }
+  if (segments.length === 0) return undefined
+  return `/${segments.join('/')}`
 }
 
 function getTextQuote(target: Element): TextQuote | undefined {

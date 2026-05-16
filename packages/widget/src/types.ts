@@ -42,7 +42,11 @@ export type AnnotationAnchor =
   | {
       mode: 'route'
       path: string
+      /** `@medv/finder` shortest unique CSS selector (or fallback chain). */
       selector?: string
+      /** XPath expression (absolute, `/html/body/...`). Stable across class
+       * churn that breaks CSS selectors, complementary to `selector`. */
+      xpath?: string
       textQuote?: TextQuote
       viewport?: Viewport
     }
