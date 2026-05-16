@@ -284,6 +284,77 @@ describe('CloudflareAdapter', () => {
     })
   })
 
+  describe('anchor patch (drag-to-reposition)', () => {
+    it('round-trips a new spatial anchor and updates modified_at', async () => {
+      let ts = 1000
+      const { adapter: a } = makeAdapter(() => ts)
+      const created = await a.create({
+        anchor: {
+          mode: 'spatial',
+          surface: 'canvas',
+          surfaceId: 'demo',
+          x: 25,
+          y: 25,
+        },
+        body: 'place',
+      })
+      ts = 2000
+      const moved = await a.update(created.id, {
+        anchor: { mode: 'spatial', surface: 'canvas', surfaceId: 'demo', x: 60, y: 40 },
+      })
+      expect(moved.anchor.mode).toBe('spatial')
+      if (moved.anchor.mode === 'spatial') {
+        expect(moved.anchor.x).toBe(60)
+        expect(moved.anchor.y).toBe(40)
+      }
+      expect(moved.modifiedAt).toBe(2000)
+      expect(moved.createdAt).toBe(1000)
+    })
+
+    it('rejects mixing anchor with resolution', async () => {
+      const created = await adapter.create({
+        anchor: { mode: 'spatial', surface: 'canvas', surfaceId: 'd', x: 0, y: 0 },
+        body: 'x',
+      })
+      await expect(
+        adapter.update(created.id, {
+          anchor: { mode: 'spatial', surface: 'canvas', surfaceId: 'd', x: 10, y: 10 },
+          resolvedPR: 1,
+          // biome-ignore lint/suspicious/noExplicitAny: testing illegal patch shape
+        } as any),
+      ).rejects.toThrow(/anchor patch cannot/)
+    })
+
+    it('writes an anchor_move audit row', async () => {
+      const created = await adapter.create({
+        anchor: { mode: 'spatial', surface: 'canvas', surfaceId: 'd', x: 0, y: 0 },
+        body: 'x',
+      })
+      await adapter.update(created.id, {
+        anchor: { mode: 'spatial', surface: 'canvas', surfaceId: 'd', x: 1, y: 1 },
+      })
+      const rows = sqlite
+        .prepare('SELECT action FROM annotation_audit_log ORDER BY id ASC')
+        .all() as Array<{ action: string }>
+      expect(rows.map((r) => r.action)).toEqual(['create', 'anchor_move'])
+    })
+
+    it('can switch a route-anchored annotation to a new selector + xpath', async () => {
+      const created = await adapter.create({
+        anchor: { mode: 'route', path: '/', selector: 'h1' },
+        body: 'x',
+      })
+      const moved = await adapter.update(created.id, {
+        anchor: { mode: 'route', path: '/', selector: 'h2.subhead', xpath: '/html/body/h2' },
+      })
+      expect(moved.anchor.mode).toBe('route')
+      if (moved.anchor.mode === 'route') {
+        expect(moved.anchor.selector).toBe('h2.subhead')
+        expect(moved.anchor.xpath).toBe('/html/body/h2')
+      }
+    })
+  })
+
   describe('triage', () => {
     it('writes a triage patch and round-trips on list', async () => {
       const created = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })

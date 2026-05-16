@@ -112,8 +112,9 @@ export type Annotation = {
  * PATCH shapes mirror Pivotal's discriminated PATCH surface
  * (body edit | resolve | reopen | overlap-only). Never mix body + resolution
  * in the same patch. Triage is its own variant so the AI onCreate flow
- * writes a structurally distinct patch from human edits; mixing triage
- * with body/resolution/overlap is rejected at the adapter boundary.
+ * writes a structurally distinct patch from human edits; the `{ anchor }`
+ * variant covers drag-to-reposition for spatial pins. Mixing any of
+ * these is rejected at the adapter boundary.
  */
 export type UpdatePatch =
   | { body: string }
@@ -126,6 +127,7 @@ export type UpdatePatch =
   | { resolvedPR: null }
   | { relatedIds?: string[]; dupOf?: string }
   | { triage: TriageResult }
+  | { anchor: AnnotationAnchor }
 
 export type AnchorQuery = { mode: 'route'; path?: string } | { mode: 'spatial'; surfaceId?: string }
 

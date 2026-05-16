@@ -256,6 +256,54 @@ export class CloudflareAdapter implements ApiAdapter {
       await this.audit(id, 'triage')
       return (await this.fetch(id)) as Annotation
     }
+    // Anchor (drag-to-reposition for spatial pins; selector re-wiring for route)
+    if ('anchor' in patch) {
+      const anchorPatch = patch as Extract<UpdatePatch, { anchor: AnnotationAnchor }>
+      const cols = serializeAnchor(anchorPatch.anchor)
+      await this.db
+        .prepare(
+          `UPDATE annotations
+           SET anchor_mode = ?,
+               anchor_path = ?,
+               anchor_selector = ?,
+               anchor_xpath = ?,
+               anchor_text_quote_exact = ?,
+               anchor_text_quote_prefix = ?,
+               anchor_text_quote_suffix = ?,
+               anchor_viewport_x = ?,
+               anchor_viewport_y = ?,
+               anchor_viewport_w = ?,
+               anchor_viewport_h = ?,
+               anchor_surface_id = ?,
+               anchor_surface_kind = ?,
+               anchor_x = ?,
+               anchor_y = ?,
+               modified_at = ?
+           WHERE id = ?`,
+        )
+        .bind(
+          cols.mode,
+          cols.path,
+          cols.selector,
+          cols.xpath,
+          cols.text_quote_exact,
+          cols.text_quote_prefix,
+          cols.text_quote_suffix,
+          cols.viewport_x,
+          cols.viewport_y,
+          cols.viewport_w,
+          cols.viewport_h,
+          cols.surface_id,
+          cols.surface_kind,
+          cols.x,
+          cols.y,
+          ts,
+          id,
+        )
+        .run()
+      await this.audit(id, 'anchor_move')
+      return (await this.fetch(id)) as Annotation
+    }
     // Overlap-only
     const overlap = patch as { relatedIds?: string[]; dupOf?: string }
     await this.db
@@ -487,9 +535,10 @@ function validatePatch(patch: UpdatePatch): void {
   const resolvedPR = hasResolvedPR ? (patch as { resolvedPR: number | null }).resolvedPR : undefined
   const hasOverlap = 'relatedIds' in patch || 'dupOf' in patch || 'resolutionNote' in patch
   const hasTriage = 'triage' in patch
+  const hasAnchor = 'anchor' in patch
   const isReopen = hasResolvedPR && resolvedPR === null
 
-  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage)) {
+  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage || hasAnchor)) {
     throw new Error(
       'CloudflareAdapter: body edit cannot be combined with resolution or overlap fields',
     )
@@ -497,12 +546,17 @@ function validatePatch(patch: UpdatePatch): void {
   if (isReopen && hasOverlap) {
     throw new Error('CloudflareAdapter: reopen patch cannot carry overlap fields')
   }
-  if (hasTriage && (hasResolvedPR || hasOverlap)) {
+  if (hasTriage && (hasResolvedPR || hasOverlap || hasAnchor)) {
     throw new Error(
       'CloudflareAdapter: triage patch cannot be combined with resolution or overlap fields',
     )
   }
-  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage) {
+  if (hasAnchor && (hasResolvedPR || hasOverlap)) {
+    throw new Error(
+      'CloudflareAdapter: anchor patch cannot be combined with resolution or overlap fields',
+    )
+  }
+  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage && !hasAnchor) {
     throw new Error('CloudflareAdapter: empty patch')
   }
 }
