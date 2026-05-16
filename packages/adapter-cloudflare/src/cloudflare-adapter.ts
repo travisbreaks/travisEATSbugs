@@ -54,6 +54,12 @@ type AnnotationRow = {
   screenshot_url: string | null
   screenshot_w: number | null
   screenshot_h: number | null
+  triage_severity: 'low' | 'medium' | 'high' | null
+  triage_category: string | null
+  triage_assignee: string | null
+  triage_dupe_of: string | null
+  triage_rationale: string | null
+  triage_at: number | null
 }
 
 export class CloudflareAdapter implements ApiAdapter {
@@ -218,6 +224,36 @@ export class CloudflareAdapter implements ApiAdapter {
         )
         .run()
       await this.audit(id, 'resolve')
+      return (await this.fetch(id)) as Annotation
+    }
+    // Triage (AI onCreate hook)
+    if ('triage' in patch) {
+      const triagePatch = patch as Extract<UpdatePatch, { triage: unknown }>
+      const t = triagePatch.triage
+      await this.db
+        .prepare(
+          `UPDATE annotations
+           SET triage_severity = ?,
+               triage_category = ?,
+               triage_assignee = ?,
+               triage_dupe_of = ?,
+               triage_rationale = ?,
+               triage_at = ?,
+               modified_at = ?
+           WHERE id = ?`,
+        )
+        .bind(
+          t.severity,
+          t.category,
+          t.suggestedAssignee ?? null,
+          t.dupeOf ?? null,
+          t.rationale ?? null,
+          t.triagedAt ?? ts,
+          ts,
+          id,
+        )
+        .run()
+      await this.audit(id, 'triage')
       return (await this.fetch(id)) as Annotation
     }
     // Overlap-only
@@ -432,6 +468,16 @@ function rowToAnnotation(row: AnnotationRow): Annotation {
       h: row.screenshot_h,
     }
   }
+  if (row.triage_severity && row.triage_category) {
+    annotation.triage = {
+      severity: row.triage_severity,
+      category: row.triage_category,
+      ...(row.triage_assignee ? { suggestedAssignee: row.triage_assignee } : {}),
+      ...(row.triage_dupe_of ? { dupeOf: row.triage_dupe_of } : {}),
+      ...(row.triage_rationale ? { rationale: row.triage_rationale } : {}),
+      ...(row.triage_at !== null ? { triagedAt: row.triage_at } : {}),
+    }
+  }
   return annotation
 }
 
@@ -440,9 +486,10 @@ function validatePatch(patch: UpdatePatch): void {
   const hasResolvedPR = 'resolvedPR' in patch
   const resolvedPR = hasResolvedPR ? (patch as { resolvedPR: number | null }).resolvedPR : undefined
   const hasOverlap = 'relatedIds' in patch || 'dupOf' in patch || 'resolutionNote' in patch
+  const hasTriage = 'triage' in patch
   const isReopen = hasResolvedPR && resolvedPR === null
 
-  if (hasBody && (hasResolvedPR || hasOverlap)) {
+  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage)) {
     throw new Error(
       'CloudflareAdapter: body edit cannot be combined with resolution or overlap fields',
     )
@@ -450,7 +497,12 @@ function validatePatch(patch: UpdatePatch): void {
   if (isReopen && hasOverlap) {
     throw new Error('CloudflareAdapter: reopen patch cannot carry overlap fields')
   }
-  if (!hasBody && !hasResolvedPR && !hasOverlap) {
+  if (hasTriage && (hasResolvedPR || hasOverlap)) {
+    throw new Error(
+      'CloudflareAdapter: triage patch cannot be combined with resolution or overlap fields',
+    )
+  }
+  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage) {
     throw new Error('CloudflareAdapter: empty patch')
   }
 }

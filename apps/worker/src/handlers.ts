@@ -15,8 +15,15 @@
  * R2-backed screenshot capture.
  */
 
-import type { AnchorQuery, CreateInput, ListQuery, UpdatePatch } from '@travisbreaks/travisEATSbugs'
+import type {
+  AnchorQuery,
+  Annotation,
+  CreateInput,
+  ListQuery,
+  UpdatePatch,
+} from '@travisbreaks/travisEATSbugs'
 import { CloudflareAdapter, type D1Like } from '@travisbreaks/travisEATSbugs-cloudflare'
+import { type TriageInvokeOpts, invokeTriage } from './anthropic'
 import { verifyShareToken } from './share-token'
 
 export type WorkerEnv = {
@@ -27,6 +34,15 @@ export type WorkerEnv = {
   ALLOWED_ORIGINS: string
   /** HMAC secret for share-link tokens. */
   SHARE_TOKEN_SECRET: string
+  /** Anthropic API key for the AI triage onCreate route. Optional: when
+   * unset, POST /triage returns 503 and the widget's httpTriage degrades
+   * gracefully (the annotation create still succeeds). */
+  ANTHROPIC_API_KEY?: string
+  /** Optional model id override. Defaults to claude-sonnet-4-6. */
+  ANTHROPIC_MODEL?: string
+  /** Optional injection point so handler tests can supply a stub
+   * Anthropic call. Not present in real Cloudflare bindings. */
+  TRIAGE_FN?: typeof invokeTriage
 }
 
 type AuthIdentity = {
@@ -65,6 +81,9 @@ export async function handle(req: Request, env: WorkerEnv): Promise<Response> {
     }
     if (path === '/authors' && req.method === 'GET') {
       return await handleListAuthors(req, env, auth)
+    }
+    if (path === '/triage' && req.method === 'POST') {
+      return await handleTriage(req, env, auth)
     }
     return jsonError(404, 'not_found', req, env)
   } catch (err) {
@@ -154,6 +173,35 @@ async function handleListAuthors(
   const adapter = buildAdapter(env, auth)
   const authors = await adapter.listAuthors()
   return new Response(JSON.stringify(authors), {
+    status: 200,
+    headers: { ...JSON_HEADERS, ...corsHeaders(req, env) },
+  })
+}
+
+async function handleTriage(req: Request, env: WorkerEnv, auth: AuthIdentity): Promise<Response> {
+  // Reporter-mode tokens (share links) MUST NOT trigger AI calls.
+  // Triage is paid + privileged; only member tokens can invoke it.
+  if (auth.kind !== 'member') {
+    return jsonError(403, 'triage_member_only', req, env)
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonError(503, 'triage_not_configured', req, env)
+  }
+  const body = (await req.json()) as { annotation?: Annotation; recent?: Annotation[] }
+  if (!body || typeof body !== 'object' || !body.annotation) {
+    return jsonError(400, 'invalid_body', req, env)
+  }
+  const invokeOpts: TriageInvokeOpts = {
+    apiKey: env.ANTHROPIC_API_KEY,
+    ...(env.ANTHROPIC_MODEL ? { model: env.ANTHROPIC_MODEL } : {}),
+    ...(body.recent ? { recent: body.recent } : {}),
+  }
+  const invoker = env.TRIAGE_FN ?? invokeTriage
+  const result = await invoker(body.annotation, invokeOpts)
+  if (!result) {
+    return jsonError(502, 'triage_upstream_failed', req, env)
+  }
+  return new Response(JSON.stringify(result), {
     status: 200,
     headers: { ...JSON_HEADERS, ...corsHeaders(req, env) },
   })

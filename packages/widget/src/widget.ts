@@ -10,6 +10,7 @@ import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 import { AnnotationOverlay, type OverlayHeaderMode, type OverlayOpts } from './overlay'
 import { wrapWithScreenshot } from './screenshot'
+import { type TriageFn, wrapWithTriage } from './triage'
 import type { Annotation, CreateInput, ScreenshotCaptureFn, UpdatePatch } from './types'
 
 export type { ReporterPromptConfig } from './drawer'
@@ -114,6 +115,19 @@ export type WidgetOpts = {
    * function that uploads to R2 / S3 and returns the public URL.
    */
   screenshotCapture?: ScreenshotCaptureFn
+  /**
+   * Run an AI triage pass after each successful `create`. The function
+   * receives the just-created annotation and returns a `TriageResult`
+   * (severity, category, suggested assignee, dupe-of) which the widget
+   * writes back via a follow-up `update`. Failures + null returns are
+   * non-fatal so a slow / missing triage endpoint never blocks reporting.
+   *
+   * Typical wiring: `triage: httpTriage({ endpoint: '/api/triage' })`
+   * pointing at a Cloudflare Worker route that calls Claude with
+   * structured output. See `apps/worker/src/handlers.ts` for the
+   * matching server side.
+   */
+  triage?: TriageFn
 } & WidgetMount
 
 export class AnnotationWidget {
@@ -123,13 +137,16 @@ export class AnnotationWidget {
 
   constructor(opts: WidgetOpts) {
     this.mode = opts.renderMode
-    // Wrap the host adapter through the optional screenshot + audit
-    // hooks. Order matters: screenshot wraps the inner adapter first
-    // so the audit hook sees the enriched annotation (with screenshot)
-    // when it fires `create`.
+    // Wrap order (innermost to outermost): screenshot -> triage -> audit.
+    // Screenshot must run before triage so the triage model sees the
+    // captured image; audit must wrap triage so the host's audit hook
+    // observes both the initial create AND the triage-driven update.
     let api = opts.api
     if (opts.screenshotCapture) {
       api = wrapWithScreenshot(api, opts.screenshotCapture, opts.renderMode)
+    }
+    if (opts.triage) {
+      api = wrapWithTriage(api, opts.triage)
     }
     if (opts.onAudit) {
       api = wrapWithAudit(api, opts.onAudit)

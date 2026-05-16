@@ -12,6 +12,7 @@ export type {
   ListQuery,
   TextQuote,
   ThreadEntry,
+  TriageResult,
   UpdatePatch,
   Viewport,
 } from './types'
@@ -39,6 +40,9 @@ export { captureSpatialAnchor, type SpatialCaptureCoords } from './anchor-spatia
 // Screenshot capture (v0.5 first-mover)
 export { defaultScreenshotCapture, wrapWithScreenshot } from './screenshot'
 export type { ScreenshotCaptureContext, ScreenshotCaptureFn } from './types'
+
+// AI triage onCreate hook (v0.5)
+export { httpTriage, type HttpTriageOptions, type TriageFn, wrapWithTriage } from './triage'
 
 // Render modes
 export { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
