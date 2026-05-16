@@ -1,33 +1,32 @@
 # travisEATSbugs default backend worker.
 #
-# Deployed at eats.travisfixes.com. Hosts the REST contract that
-# @travisbreaks/travisEATSbugs-http expects, backed by a D1 database
-# whose schema lives in packages/adapter-cloudflare/migrations/.
+# LIVE at https://eats.travisfixes.com (custom domain bound 2026-05-16).
+# Hosts the REST contract that @travisbreaks/travisEATSbugs-http expects,
+# backed by D1 whose schema lives in packages/adapter-cloudflare/migrations/.
 #
-# Before first deploy:
-#   1. wrangler login                                  (one-time OAuth)
-#   2. wrangler d1 create travisEATSbugs               (record the id below)
-#   3. wrangler d1 migrations apply travisEATSbugs --remote
-#   4. wrangler secret put SHARE_TOKEN_SECRET          (HMAC key)
-#   5. wrangler deploy
+# Secrets attached to the production worker (set via `wrangler secret put`,
+# sourced from keychain to keep values out of shell history):
+#   - SHARE_TOKEN_SECRET  (HMAC for share-link tokens)
+#   - ANTHROPIC_API_KEY   (powers POST /triage; opt-in)
+#   - MEMBER_TOKENS       (comma-sep allow-list for full read/write)
 #
-# The `database_id` placeholder below is intentionally blank so a fresh
-# clone does not point at a stale D1 instance. Fill in after step 2.
+# For deploy-from-scratch instructions and rollback, see README.md.
 
 name = "travis-eats-bugs-worker"
 main = "src/index.ts"
 compatibility_date = "2026-05-15"
 compatibility_flags = ["nodejs_compat"]
 
-# Live route. Uncomment after the DNS record exists at eats.travisfixes.com.
-# routes = [
-#   { pattern = "eats.travisfixes.com/*", custom_domain = true }
-# ]
+# Live route. Bound via CF API on 2026-05-16 (custom_domain auto-provisions
+# the DNS record + cert in the travisfixes.com zone).
+routes = [
+  { pattern = "eats.travisfixes.com", custom_domain = true }
+]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "travisEATSbugs"
-database_id = ""
+database_id = "9118617e-0f72-401a-82e3-f1031648cb22"
 migrations_dir = "../../packages/adapter-cloudflare/migrations"
 
 # R2 binding for v0.5 screenshot capture. No-op for v0.2.
@@ -35,11 +34,7 @@ migrations_dir = "../../packages/adapter-cloudflare/migrations"
 # binding = "SCREENSHOTS"
 # bucket_name = "travis-eats-bugs-screenshots"
 
-[vars]
-# Comma-separated list of project tokens recognized as "members" (full
-# read/write). Reporters using share-link tokens get scoped access.
-# Override at deploy time with `wrangler secret put MEMBER_TOKENS`.
-MEMBER_TOKENS = ""
-
-# CORS allow-list (comma-separated origins). Empty = allow all (dev only).
-ALLOWED_ORIGINS = ""
+# MEMBER_TOKENS and ALLOWED_ORIGINS are set via `wrangler secret put` so
+# they live as secrets rather than committed vars. Empty defaults caused
+# them to override the uploaded secrets in production. If you ever want
+# a dev-only fallback, add a `[env.dev.vars]` block instead.
