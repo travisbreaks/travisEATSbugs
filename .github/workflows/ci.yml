@@ -6,9 +6,27 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel stale runs when a newer commit lands on the same ref. Saves CI
+# minutes + makes the "latest run" the only one that matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Workflow is read-only against the repo. Tighten the default token scope so
+# a compromised action can't push code or modify issues.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # engines.node says >=20. Verify both LTS minors that satisfy that:
+        # 20 (current LTS) and 22 (latest the package locks against).
+        node-version: [20, 22]
+    name: build (node ${{ matrix.node-version }})
     steps:
       - uses: actions/checkout@v4
 
@@ -16,11 +34,32 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (all workspaces)
+        run: pnpm -r build
+
+      - name: Typecheck (all workspaces)
+        run: pnpm -r typecheck
+
+      - name: Lint (root + workspaces)
+        run: pnpm lint
+
+      - name: Test (all workspaces)
+        run: pnpm -r test
+
+      # Make the built widget bundle inspectable from the run summary so a
+      # reviewer can sanity-check size deltas without cloning + building.
+      # Only upload from the Node 22 matrix slot to avoid duplicate artifacts.
+      - name: Upload widget dist
+        if: matrix.node-version == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: widget-dist
+          path: packages/widget/dist
+          retention-days: 14
+          if-no-files-found: error
