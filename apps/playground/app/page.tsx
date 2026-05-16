@@ -1,12 +1,105 @@
 'use client'
 
-import { destroy, init } from '@travisbreaks/travisEATSbugs'
-import { useEffect } from 'react'
+import {
+  AnnotationWidget,
+  MemoryAdapter,
+  defaultAuth,
+  destroy as destroyBugButton,
+  init as initBugButton,
+  type Annotation,
+} from '@travisbreaks/travisEATSbugs'
+import { useEffect, useRef } from 'react'
+
+// Seed three sample annotations so the demo reads as a working system on
+// first load. Two route-anchored (drawer) + one spatial (overlay).
+const SEED: Annotation[] = [
+  {
+    id: 'seed-1',
+    anchor: { mode: 'route', path: '/' },
+    body: 'Hero copy reads as "click the bug." That command-shape lands.',
+    author: { id: 'seed-author', display: 'Cole' },
+    createdAt: Date.now() - 1000 * 60 * 60 * 6,
+    modifiedAt: Date.now() - 1000 * 60 * 60 * 6,
+    state: 'open',
+  },
+  {
+    id: 'seed-2',
+    anchor: { mode: 'route', path: '/' },
+    body: 'Sample button below the demo: thicker outline on hover would help signal "clickable."',
+    author: { id: 'seed-author', display: 'Jesse' },
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
+    modifiedAt: Date.now() - 1000 * 60 * 60 * 2,
+    state: 'resolved',
+    resolvedPR: 142,
+    resolvedAt: Date.now() - 1000 * 60 * 30,
+    resolvedBy: 'demo',
+    resolutionNote: 'Outline went from 1px to 2px on hover.',
+  },
+  {
+    id: 'seed-3',
+    anchor: {
+      mode: 'spatial',
+      surface: 'canvas',
+      surfaceId: 'playground-canvas',
+      x: 30,
+      y: 42,
+    },
+    body: 'This corner of the staging preview needs a tighter crop.',
+    author: { id: 'seed-author', display: 'Cole' },
+    createdAt: Date.now() - 1000 * 60 * 30,
+    modifiedAt: Date.now() - 1000 * 60 * 30,
+    state: 'open',
+  },
+]
 
 export default function Home() {
+  const surfaceRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
-    init({ project: 'playground' })
-    return () => destroy()
+    // Single in-memory store backs BOTH render modes so a note created in
+    // the drawer shows up alongside seeded ones in `list()` calls, and the
+    // overlay sees its spatial annotations through the same store.
+    const api = new MemoryAdapter({ seed: SEED })
+
+    const drawer = new AnnotationWidget({
+      api,
+      auth: defaultAuth,
+      renderMode: 'drawer',
+      // Sit left of the bug button so both are visible.
+      position: { bottom: 24, right: 96 },
+    })
+    drawer.mount()
+
+    let overlay: AnnotationWidget | null = null
+    if (surfaceRef.current) {
+      overlay = new AnnotationWidget({
+        api,
+        auth: defaultAuth,
+        renderMode: 'overlay',
+        surface: surfaceRef.current,
+        surfaceId: 'playground-canvas',
+        surfaceKind: 'canvas',
+        headerMode: 'minimal',
+        showSidebar: true,
+        initialFilter: 'all',
+      })
+      overlay.mount()
+    }
+
+    // v0 floating bug button (Shadow DOM, idempotent). Wire its click into
+    // the drawer's toggle so the icon doubles as the drawer trigger.
+    initBugButton({ project: 'playground' })
+    const host = document.getElementById('travisEATSbugs-host')
+    const btn = host?.shadowRoot?.querySelector('button')
+    const onBugClick = () => drawer.toggle()
+    btn?.addEventListener('click', onBugClick)
+
+    return () => {
+      btn?.removeEventListener('click', onBugClick)
+      drawer.destroy()
+      overlay?.destroy()
+      destroyBugButton()
+    }
   }, [])
 
   return (
@@ -32,59 +125,72 @@ export default function Home() {
           <span className="pip" aria-hidden="true">
             ✱
           </span>
-          <span>travisEATSbugs playground</span>
+          <span>travisEATSbugs playground / v0.1</span>
         </p>
 
         <h1>
           Click the bug.
           <br />
-          <em>See what happens.</em>
+          <em>Drop a marker.</em>
         </h1>
 
         <p className="lede">
-          A floating button injects via Shadow DOM. Theme tokens cascade through. No layout shift on
-          hover or press. Reduced-motion respected. Mobile-first touch targets. This is v0.
+          Floating button bottom-right opens the drawer (route-anchored annotations on the current
+          page). The staging surface below accepts click-to-place markers (spatial-anchored
+          annotations). Both render modes read from the same in-memory store.
         </p>
 
         <section>
-          <h2>{'// Working in v0'}</h2>
+          <h2>{'// drawer mode (route anchor)'}</h2>
+          <p className="section-body">
+            The bug icon at the bottom-right opens a side drawer with all annotations scoped to the
+            current route. Type a note, hit{' '}
+            <code>
+              <span className="kbd">⌘</span>↵
+            </code>{' '}
+            to save. Edit or delete inline. Resolved notes carry a PR badge.
+          </p>
+        </section>
+
+        <section>
+          <h2>{'// overlay mode (spatial anchor)'}</h2>
+          <p className="section-body">
+            Click anywhere on the staging surface below to drop a marker. Resolve toggles state.
+            Filters cycle open / resolved / all. The seeded marker shows the rendered shape.
+          </p>
+          <div ref={surfaceRef} id="playground-canvas" className="overlay-surface" />
+        </section>
+
+        <section>
+          <h2>{'// what these adapters know'}</h2>
           <ul>
-            <li>Floating bug button, Shadow DOM isolation</li>
-            <li>Theme tokens via CSS custom properties (host pages override)</li>
-            <li>No-shift hover and active states (transform-only, no layout mutations)</li>
             <li>
-              Breathing glow ambient, paused on hover, killed by <code>prefers-reduced-motion</code>
+              Drawer + overlay share one <code>MemoryAdapter</code> instance, so a note created in
+              one mode is queryable from the other.
             </li>
-            <li>Configurable position: bottom-right, bottom-left, top-right, top-left</li>
             <li>
-              Idempotent <code>init()</code> and <code>destroy()</code> lifecycle
+              <code>UpdatePatch</code> shape is strictly discriminated: body OR resolve OR reopen OR
+              overlap, never combined.
+            </li>
+            <li>
+              <code>defaultAuth</code> returns a stub user; real consumers (Pivotal, Lion's Share)
+              inject their own auth adapter.
+            </li>
+            <li>
+              CSS custom properties on <code>:root</code> pierce the Shadow DOM boundary so each
+              host theme drives the widget's look without a build step.
             </li>
           </ul>
         </section>
 
         <section>
-          <h2>{'// Up next in v0.1'}</h2>
+          <h2>{'// up next'}</h2>
           <ul>
-            <li>Click-to-mark mode toggle</li>
-            <li>
-              Triple-selector anchoring: <code>@medv/finder</code> + XPath + text-quote
-            </li>
-            <li>
-              Screenshot capture via <code>modern-screenshot</code>
-            </li>
-            <li>Sticky-note pin UI with Motion animations</li>
+            <li>v0.2 backend adapters: Cloudflare D1 + R2 worker, BYO HTTP.</li>
+            <li>v0.3 Pivotal cutover: page-notes drawer swaps for AnnotationWidget.</li>
+            <li>v0.4 Lion&apos;s Share cutover: pin-annotations swap for AnnotationWidget overlay.</li>
+            <li>v0.5 AI triage hook + screenshot capture + sticky-note Motion polish.</li>
           </ul>
-        </section>
-
-        <section className="anchor-targets">
-          <h2>{'// Sample content for marking'}</h2>
-          <p>
-            This paragraph exists so the widget has stuff to anchor to once v0.1 ships. Real content
-            rendering is unrelated to widget behavior.
-          </p>
-          <button type="button" className="sample-btn">
-            A button to mark
-          </button>
         </section>
 
         <footer>
@@ -160,7 +266,7 @@ export default function Home() {
         .surface {
           position: relative;
           min-height: 100vh;
-          padding: 80px 24px 120px;
+          padding: 80px 24px 160px;
           overflow-x: hidden;
         }
 
@@ -181,7 +287,7 @@ export default function Home() {
         article {
           position: relative;
           z-index: 2;
-          max-width: 680px;
+          max-width: 720px;
           margin: 0 auto;
         }
 
@@ -220,7 +326,7 @@ export default function Home() {
           font-size: 1.1rem;
           color: var(--teb-text-secondary);
           margin: 0 0 56px;
-          max-width: 56ch;
+          max-width: 60ch;
         }
 
         section {
@@ -237,6 +343,12 @@ export default function Home() {
           text-transform: uppercase;
           color: var(--teb-text-tertiary);
           font-weight: 500;
+        }
+
+        .section-body {
+          color: var(--teb-text-primary);
+          max-width: 60ch;
+          margin: 0 0 16px;
         }
 
         ul {
@@ -269,31 +381,23 @@ export default function Home() {
           color: var(--teb-tertiary);
         }
 
-        .anchor-targets {
-          border-left-color: var(--teb-tertiary);
+        .kbd {
+          color: var(--teb-text-primary);
+          margin-right: 2px;
         }
 
-        .sample-btn {
-          margin-top: 16px;
-          padding: 12px 24px;
-          font-family: inherit;
-          font-size: 0.95rem;
-          background: transparent;
-          color: var(--teb-text-primary);
+        .overlay-surface {
+          margin-top: 20px;
+          width: 100%;
+          aspect-ratio: 16 / 10;
+          background: linear-gradient(
+            135deg,
+            rgba(204, 164, 59, 0.08) 0%,
+            rgba(204, 164, 59, 0.02) 100%
+          );
           border: 1px solid var(--teb-grid-line);
           border-radius: 4px;
-          transition: box-shadow 200ms var(--teb-ease), color 200ms var(--teb-ease);
-          min-height: 44px;
-        }
-
-        .sample-btn:hover {
-          box-shadow: inset 0 0 0 2px var(--teb-secondary);
-          color: var(--teb-secondary);
-        }
-
-        .sample-btn:active {
-          transform: scale(0.97);
-          transition: transform 80ms var(--teb-ease);
+          position: relative;
         }
 
         footer {

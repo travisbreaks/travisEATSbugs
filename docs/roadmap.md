@@ -13,21 +13,23 @@ Aligned to `docs/extraction-strategy-2026-05-15.md`. The consolidation around Pi
 - [x] GitHub issues per major feature
 - [ ] Branch protection (deferred; low value on solo private repo)
 
-## v0.1: Widget core (target: this week)
+## v0.1: Widget core
 
-- [ ] Unified `Annotation` type with discriminated `anchor` union (route + spatial)
-- [ ] Three adapter contracts: `ApiAdapter`, `AuthAdapter`, `ThemeAdapter`
-- [ ] In-memory adapter (playground default)
-- [ ] localStorage adapter (browser-only, prototype-friendly)
-- [ ] Dual render modes: `drawer` (Pivotal pattern) + `overlay` (Lion's Share pattern)
-- [ ] Click-to-mark mode toggle, wired to the existing v0 bug button
-- [ ] Triple-selector anchoring (`@medv/finder` + XPath fallback + W3C text-quote)
-- [ ] Spatial anchor capture (x, y percent, clamped to canvas bounds)
-- [ ] Compose / edit / delete primitives
-- [ ] Resolution + reopen verbs (resolved_pr column inherited from Pivotal mig 045)
-- [ ] Overlap tracking (related_ids + dup_of, inherited from Pivotal mig 058)
-- [ ] CSS custom property theme contract; host pages override at `:root`
-- [ ] Playground exercises both render modes against the in-memory adapter
+- [x] Unified `Annotation` type with discriminated `anchor` union (route + spatial)
+- [x] Three adapter contracts: `ApiAdapter`, `AuthAdapter`, `ThemeAdapter`
+- [x] In-memory adapter (playground default)
+- [x] localStorage adapter (browser-only, prototype-friendly)
+- [x] Dual render modes: `drawer` (Pivotal pattern) + `overlay` (Lion's Share pattern)
+- [x] Click-to-mark mode toggle, wired to the existing v0 bug button (playground integration)
+- [~] Triple-selector anchoring: `@medv/finder` + W3C text-quote + viewport shipped; XPath fallback deferred to v0.2
+- [x] Spatial anchor capture (x, y percent, clamped to canvas bounds)
+- [x] Compose / edit / delete primitives
+- [x] Resolution + reopen verbs (resolved_pr column inherited from Pivotal mig 045)
+- [x] Overlap tracking (related_ids + dup_of, inherited from Pivotal mig 058)
+- [x] CSS custom property theme contract; host pages override at `:root`
+- [x] Playground exercises both render modes against the in-memory adapter
+
+Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 27/27 tests pass; ~17 KB gzipped). Playground integration landed in a follow-up commit.
 
 ## v0.2: Backend adapters
 
