@@ -258,6 +258,14 @@ export class CloudflareAdapter implements ApiAdapter {
     })
   }
 
+  /**
+   * Swap the current-user identity at runtime. Mirrors MemoryAdapter so the
+   * reporter name-prompt flow works regardless of which adapter is wired.
+   */
+  setCurrentUser(user: AuthorRef): void {
+    this.currentUser = user
+  }
+
   private async fetch(id: string): Promise<Annotation | null> {
     const row = await this.db
       .prepare('SELECT * FROM annotations WHERE id = ?')

@@ -24,12 +24,20 @@ export { MemoryAdapter, type MemoryAdapterOptions } from './adapter-memory'
 export { LocalStorageAdapter, type LocalStorageAdapterOptions } from './adapter-localstorage'
 export { defaultAuth } from './auth-stub'
 
+// Reporter mode (anonymous-user share-link flow)
+export {
+  clearReporterName,
+  localStorageReporter,
+  type ReporterOptions,
+  setReporterName,
+} from './reporter'
+
 // Anchor capture helpers
 export { captureRouteAnchor } from './anchor-route'
 export { captureSpatialAnchor, type SpatialCaptureCoords } from './anchor-spatial'
 
 // Render modes
-export { AnnotationDrawer, type DrawerOpts } from './drawer'
+export { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 export {
   AnnotationOverlay,
   type OverlayOpts,

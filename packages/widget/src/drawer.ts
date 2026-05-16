@@ -17,7 +17,19 @@
  */
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
-import type { AnchorQuery, Annotation } from './types'
+import { setReporterName } from './reporter'
+import type { AnchorQuery, Annotation, AuthorRef } from './types'
+
+export type ReporterPromptConfig = {
+  /** localStorage namespace for the stored reporter identity. */
+  namespace?: string
+  /** Prompt text shown above the name input. */
+  prompt?: string
+  /** Input placeholder. */
+  placeholder?: string
+  /** CTA button label. */
+  submitLabel?: string
+}
 
 export type DrawerOpts = {
   api: ApiAdapter
@@ -35,6 +47,12 @@ export type DrawerOpts = {
    * usually toggle via the floating bug button.
    */
   open?: boolean
+  /**
+   * Reporter mode: when `auth.getCurrentUser()` returns null, prompt for
+   * a display name before allowing compose. Name persists to localStorage
+   * via the namespace below.
+   */
+  reporterPrompt?: ReporterPromptConfig
 }
 
 const HOST_ID = 'travisEATSbugs-drawer-host'
@@ -50,6 +68,8 @@ export class AnnotationDrawer {
   private editingValue = ''
   private items: Annotation[] = []
   private loading = false
+  private awaitingReporter = false
+  private reporterChecked = false
 
   constructor(opts: DrawerOpts) {
     this.opts = opts
@@ -66,7 +86,30 @@ export class AnnotationDrawer {
     this.shadow.appendChild(this.buildStyles())
     this.shadow.appendChild(this.buildPanel())
     document.body.appendChild(this.host)
+    void this.checkReporter()
     this.refresh()
+  }
+
+  /**
+   * If reporter mode is enabled and the host auth adapter returns no
+   * current user, flip into reporter-prompt state. Called on mount and
+   * before any compose attempt.
+   */
+  private async checkReporter(): Promise<void> {
+    if (!this.opts.reporterPrompt || !this.opts.auth) {
+      this.reporterChecked = true
+      return
+    }
+    try {
+      const user = await this.opts.auth.getCurrentUser()
+      this.awaitingReporter = user === null
+    } catch {
+      // Auth threw; default to "no reporter" so the prompt shows. Host
+      // can wire their own error UI later.
+      this.awaitingReporter = true
+    }
+    this.reporterChecked = true
+    this.render()
   }
 
   unmount(): void {
@@ -215,6 +258,40 @@ export class AnnotationDrawer {
         flex-direction: column;
         gap: 8px;
       }
+      .compose[hidden] { display: none; }
+
+      .reporter-prompt {
+        padding: 16px;
+        border-bottom: 1px solid var(--teb-border);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .reporter-prompt[hidden] { display: none; }
+      .reporter-label {
+        font-size: 13px;
+        color: var(--teb-fg);
+        line-height: 1.4;
+      }
+      .reporter-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .reporter-input {
+        flex: 1;
+        font: inherit;
+        color: inherit;
+        background: var(--teb-surface-2);
+        border: 1px solid var(--teb-border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        box-sizing: border-box;
+      }
+      .reporter-input:focus-visible {
+        outline: 2px solid var(--teb-accent);
+        outline-offset: 1px;
+      }
 
       textarea {
         width: 100%;
@@ -358,10 +435,27 @@ export class AnnotationDrawer {
     panel.setAttribute('role', 'dialog')
     panel.setAttribute('aria-label', this.opts.theme?.drawerTitle ?? 'Page notes')
     panel.dataset.open = String(this.isOpen)
+    const reporterPrompt =
+      this.opts.reporterPrompt?.prompt ?? 'What name should we put on your notes?'
+    const reporterPlaceholder = this.opts.reporterPrompt?.placeholder ?? 'Your name'
+    const reporterSubmit = this.opts.reporterPrompt?.submitLabel ?? 'Continue'
     panel.innerHTML = `
       <div class="header">
         <span class="title"></span>
         <button class="close-btn" type="button" aria-label="Close panel">×</button>
+      </div>
+      <div class="reporter-prompt" hidden>
+        <label class="reporter-label">${reporterPrompt}</label>
+        <div class="reporter-row">
+          <input
+            class="reporter-input"
+            type="text"
+            aria-label="Your display name"
+            placeholder="${reporterPlaceholder}"
+            maxlength="60"
+          />
+          <button class="btn primary reporter-submit-btn" type="button">${reporterSubmit}</button>
+        </div>
       </div>
       <div class="compose">
         <textarea
@@ -385,6 +479,8 @@ export class AnnotationDrawer {
     const closeBtn = panel.querySelector<HTMLButtonElement>('.close-btn')
     const submitBtn = panel.querySelector<HTMLButtonElement>('.submit-btn')
     const textarea = panel.querySelector<HTMLTextAreaElement>('textarea')
+    const reporterInput = panel.querySelector<HTMLInputElement>('.reporter-input')
+    const reporterSubmitBtn = panel.querySelector<HTMLButtonElement>('.reporter-submit-btn')
     if (!closeBtn || !submitBtn || !textarea) return
 
     closeBtn.addEventListener('click', () => this.close())
@@ -404,6 +500,55 @@ export class AnnotationDrawer {
     submitBtn.addEventListener('click', () => {
       void this.submitCompose(textarea)
     })
+
+    if (reporterInput && reporterSubmitBtn) {
+      const submit = () => {
+        void this.submitReporterName(reporterInput)
+      }
+      reporterSubmitBtn.addEventListener('click', submit)
+      reporterInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          submit()
+        }
+      })
+    }
+  }
+
+  /**
+   * Reporter set their display name. Persist via setReporterName, push
+   * the new identity to the adapter if it supports runtime swaps, then
+   * hide the prompt and reveal the compose form.
+   */
+  private async submitReporterName(input: HTMLInputElement): Promise<void> {
+    const name = input.value.trim()
+    if (!name) return
+    const ref = setReporterName(name, {
+      ...(this.opts.reporterPrompt?.namespace
+        ? { namespace: this.opts.reporterPrompt.namespace }
+        : {}),
+    })
+    this.pushIdentityToAdapter(ref)
+    this.awaitingReporter = false
+    this.render()
+    // Focus the compose textarea so the reporter can start typing.
+    setTimeout(() => {
+      this.shadow?.querySelector<HTMLTextAreaElement>('textarea')?.focus()
+    }, 0)
+  }
+
+  private pushIdentityToAdapter(ref: AuthorRef): void {
+    const api = this.opts.api as ApiAdapter & {
+      setCurrentUser?: (user: AuthorRef) => void
+    }
+    if (typeof api.setCurrentUser === 'function') {
+      try {
+        api.setCurrentUser(ref)
+      } catch {
+        // Adapter rejected the swap; reporter still has localStorage identity
+        // so subsequent reads will pick up the name via auth.
+      }
+    }
   }
 
   private updateComposeState(): void {
@@ -454,6 +599,13 @@ export class AnnotationDrawer {
     const panel = this.shadow.querySelector<HTMLDivElement>('.panel')
     if (!panel) return
     panel.dataset.open = String(this.isOpen)
+    panel.dataset.reporterAwait = String(this.awaitingReporter)
+
+    // Show/hide reporter prompt vs compose block based on reporterAwait.
+    const reporterBlock = panel.querySelector<HTMLDivElement>('.reporter-prompt')
+    const composeBlock = panel.querySelector<HTMLDivElement>('.compose')
+    if (reporterBlock) reporterBlock.hidden = !this.awaitingReporter
+    if (composeBlock) composeBlock.hidden = this.awaitingReporter
 
     const title = panel.querySelector<HTMLSpanElement>('.title')
     if (title) title.textContent = this.opts.theme?.drawerTitle ?? 'Page notes'

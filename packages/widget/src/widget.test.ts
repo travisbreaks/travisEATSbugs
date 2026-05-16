@@ -6,6 +6,7 @@ import { captureSpatialAnchor } from './anchor-spatial'
 import { defaultAuth } from './auth-stub'
 import { AnnotationDrawer } from './drawer'
 import { AnnotationOverlay } from './overlay'
+import { clearReporterName, localStorageReporter, setReporterName } from './reporter'
 import type { Annotation, AnnotationAnchor } from './types'
 import { AnnotationWidget, type AuditEvent, TravisEatsBugs, wrapWithAudit } from './widget'
 
@@ -305,6 +306,188 @@ describe('defaultAuth', () => {
     const u = await defaultAuth.getCurrentUser()
     expect(u?.id).toBe('demo')
     expect(u?.display).toBe('You')
+  })
+})
+
+describe('reporter mode (localStorage-backed identity)', () => {
+  // Same Storage shim trick the LocalStorageAdapter tests use, since
+  // happy-dom v15 + Node 25 don't always agree on `localStorage`.
+  function installStorage(): Storage {
+    const data = new Map<string, string>()
+    const shim = {
+      get length() {
+        return data.size
+      },
+      clear: () => {
+        data.clear()
+      },
+      getItem: (k: string) => (data.has(k) ? (data.get(k) ?? null) : null),
+      setItem: (k: string, v: string) => {
+        data.set(k, String(v))
+      },
+      removeItem: (k: string) => {
+        data.delete(k)
+      },
+      key: (i: number) => Array.from(data.keys())[i] ?? null,
+    } as unknown as Storage
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: shim })
+    return shim
+  }
+
+  let originalDescriptor: PropertyDescriptor | undefined
+  beforeEach(() => {
+    originalDescriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    installStorage()
+  })
+  afterEach(() => {
+    if (originalDescriptor) {
+      Object.defineProperty(window, 'localStorage', originalDescriptor)
+    } else {
+      Object.defineProperty(window, 'localStorage', { configurable: true, value: undefined })
+    }
+  })
+
+  it('localStorageReporter: returns null when nothing stored', async () => {
+    const auth = localStorageReporter({ namespace: 'test-empty' })
+    expect(await auth.getCurrentUser()).toBeNull()
+  })
+
+  it('setReporterName + localStorageReporter round-trip', async () => {
+    setReporterName('Cole', { namespace: 'test-rt' })
+    const auth = localStorageReporter({ namespace: 'test-rt' })
+    const user = await auth.getCurrentUser()
+    expect(user?.display).toBe('Cole')
+    expect(user?.id).toMatch(/^reporter-/)
+  })
+
+  it('setReporterName preserves the id when renaming', async () => {
+    const a = setReporterName('Cole', { namespace: 'test-rename' })
+    const b = setReporterName('Cole Cousin', { namespace: 'test-rename' })
+    expect(b.id).toBe(a.id)
+    expect(b.display).toBe('Cole Cousin')
+  })
+
+  it('setReporterName throws on empty name', () => {
+    expect(() => setReporterName('   ', { namespace: 'test-empty' })).toThrow(/cannot be empty/)
+  })
+
+  it('clearReporterName removes the stored identity', async () => {
+    setReporterName('Temp', { namespace: 'test-clear' })
+    const auth = localStorageReporter({ namespace: 'test-clear' })
+    expect(await auth.getCurrentUser()).not.toBeNull()
+    clearReporterName({ namespace: 'test-clear' })
+    expect(await auth.getCurrentUser()).toBeNull()
+  })
+
+  it('MemoryAdapter.setCurrentUser updates author on subsequent creates', async () => {
+    const adapter = new MemoryAdapter({ currentUser: { id: 'before', display: 'Before' } })
+    const first = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'a' })
+    expect(first.author.id).toBe('before')
+    adapter.setCurrentUser({ id: 'after', display: 'After' })
+    const second = await adapter.create({ anchor: { mode: 'route', path: '/' }, body: 'b' })
+    expect(second.author.id).toBe('after')
+    // The first annotation's author is not retroactively changed.
+    const list = await adapter.list()
+    expect(list[0]?.author.id).toBe('before')
+    expect(list[1]?.author.id).toBe('after')
+  })
+
+  it('drawer with reporterPrompt shows the prompt when auth returns null', async () => {
+    const api = new MemoryAdapter()
+    const drawer = new AnnotationDrawer({
+      api,
+      auth: {
+        async getCurrentUser() {
+          return null
+        },
+      },
+      reporterPrompt: { namespace: 'test-drawer-prompt' },
+      anchorQuery: () => ({ mode: 'route', path: '/' }),
+      open: true,
+    })
+    drawer.mount()
+    await vi.waitFor(() => {
+      const panel = document
+        .getElementById('travisEATSbugs-drawer-host')
+        ?.shadowRoot?.querySelector<HTMLDivElement>('.panel')
+      expect(panel?.dataset.reporterAwait).toBe('true')
+    })
+    const prompt = document
+      .getElementById('travisEATSbugs-drawer-host')
+      ?.shadowRoot?.querySelector<HTMLDivElement>('.reporter-prompt')
+    expect(prompt?.hidden).toBe(false)
+    drawer.unmount()
+  })
+
+  it('drawer hides prompt + swaps adapter identity after name submit', async () => {
+    const api = new MemoryAdapter({ currentUser: { id: 'anon', display: 'Anon' } })
+    const drawer = new AnnotationDrawer({
+      api,
+      auth: {
+        async getCurrentUser() {
+          return null
+        },
+      },
+      reporterPrompt: { namespace: 'test-drawer-submit' },
+      anchorQuery: () => ({ mode: 'route', path: '/' }),
+      open: true,
+    })
+    drawer.mount()
+    await vi.waitFor(() => {
+      const panel = document
+        .getElementById('travisEATSbugs-drawer-host')
+        ?.shadowRoot?.querySelector<HTMLDivElement>('.panel')
+      expect(panel?.dataset.reporterAwait).toBe('true')
+    })
+    const host = document.getElementById('travisEATSbugs-drawer-host')
+    const input = host?.shadowRoot?.querySelector<HTMLInputElement>('.reporter-input')
+    const submit = host?.shadowRoot?.querySelector<HTMLButtonElement>('.reporter-submit-btn')
+    expect(input).not.toBeNull()
+    if (input && submit) {
+      input.value = 'Reporter Jane'
+      submit.click()
+    }
+    await vi.waitFor(() => {
+      const panel = host?.shadowRoot?.querySelector<HTMLDivElement>('.panel')
+      expect(panel?.dataset.reporterAwait).toBe('false')
+    })
+    const created = await api.create({ anchor: { mode: 'route', path: '/' }, body: 'after' })
+    expect(created.author.display).toBe('Reporter Jane')
+    drawer.unmount()
+  })
+
+  it('overlay shows reporter overlay + drops surface clicks while awaiting', async () => {
+    const surface = document.createElement('div')
+    document.body.appendChild(surface)
+    surface.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300, x: 0, y: 0 }) as DOMRect
+    const api = new MemoryAdapter()
+    const overlay = new AnnotationOverlay({
+      api,
+      auth: {
+        async getCurrentUser() {
+          return null
+        },
+      },
+      surface,
+      surfaceId: 'reporter-test',
+      reporterPrompt: { namespace: 'test-overlay-prompt' },
+    })
+    overlay.mount()
+    await vi.waitFor(() => {
+      const block = surface
+        .querySelector('[data-travisEATSbugs-overlay]')
+        ?.shadowRoot?.querySelector<HTMLDivElement>('.reporter-overlay')
+      expect(block?.hidden).toBe(false)
+    })
+    // A click on the surface while awaiting should NOT create a draft.
+    surface.dispatchEvent(new MouseEvent('click', { clientX: 50, clientY: 50, bubbles: true }))
+    const draft = surface
+      .querySelector('[data-travisEATSbugs-overlay]')
+      ?.shadowRoot?.querySelector('.draft')
+    expect(draft).toBeNull()
+    overlay.unmount()
+    document.body.removeChild(surface)
   })
 })
 

@@ -4,12 +4,17 @@ import {
   type Annotation,
   AnnotationWidget,
   type AuditEvent,
-  MemoryAdapter,
+  type AuthAdapter,
+  clearReporterName,
   defaultAuth,
   destroy as destroyBugButton,
   init as initBugButton,
+  localStorageReporter,
+  MemoryAdapter,
 } from '@travisbreaks/travisEATSbugs'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+const REPORTER_NAMESPACE = 'travisEATSbugs.playground.reporter'
 
 // Seed three sample annotations so the demo reads as a working system on
 // first load. Two route-anchored (drawer) + one spatial (overlay).
@@ -55,12 +60,44 @@ const SEED: Annotation[] = [
 
 export default function Home() {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
+  const [reporterMode, setReporterMode] = useState(false)
 
   useEffect(() => {
+    setReporterMode(
+      typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).has('reporter'),
+    )
+  }, [])
+
+  const resetReporter = useCallback(() => {
+    clearReporterName({ namespace: REPORTER_NAMESPACE })
+    if (typeof window !== 'undefined') window.location.reload()
+  }, [])
+
+  useEffect(() => {
+    // Reporter mode (anonymous-user share-link flow) is triggered by
+    // `?reporter` on the URL. Without the flag we use defaultAuth and
+    // skip the prompt entirely. With the flag, localStorageReporter
+    // returns null until a name is set; the drawer + overlay both
+    // surface their prompts, and once the reporter types a name the
+    // adapter's currentUser is swapped via setCurrentUser.
+    const isReporter =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('reporter')
+
+    const auth: AuthAdapter = isReporter
+      ? localStorageReporter({ namespace: REPORTER_NAMESPACE })
+      : defaultAuth
+
     // Single in-memory store backs BOTH render modes so a note created in
     // the drawer shows up alongside seeded ones in `list()` calls, and the
     // overlay sees its spatial annotations through the same store.
-    const api = new MemoryAdapter({ seed: SEED })
+    const api = new MemoryAdapter({
+      seed: SEED,
+      // Default until reporter sets their name; setCurrentUser swaps in
+      // the new identity when they do.
+      currentUser: { id: 'demo', display: 'You' },
+    })
 
     // Demo audit hook: log every mutation to the console. Real consumers
     // (Pivotal admin inbox, Lion's Share /tracks aggregator) wire this to
@@ -70,13 +107,18 @@ export default function Home() {
       console.log('[travisEATSbugs audit]', event)
     }
 
+    const reporterPrompt = isReporter
+      ? { namespace: REPORTER_NAMESPACE }
+      : undefined
+
     const drawer = new AnnotationWidget({
       api,
-      auth: defaultAuth,
+      auth,
       onAudit,
       renderMode: 'drawer',
       // Sit left of the bug button so both are visible.
       position: { bottom: 24, right: 96 },
+      ...(reporterPrompt ? { reporterPrompt } : {}),
     })
     drawer.mount()
 
@@ -84,7 +126,7 @@ export default function Home() {
     if (surfaceRef.current) {
       overlay = new AnnotationWidget({
         api,
-        auth: defaultAuth,
+        auth,
         onAudit,
         renderMode: 'overlay',
         surface: surfaceRef.current,
@@ -93,6 +135,7 @@ export default function Home() {
         headerMode: 'minimal',
         showSidebar: true,
         initialFilter: 'all',
+        ...(reporterPrompt ? { reporterPrompt } : {}),
       })
       overlay.mount()
     }
@@ -191,6 +234,29 @@ export default function Home() {
               host theme drives the widget's look without a build step.
             </li>
           </ul>
+        </section>
+
+        <section>
+          <h2>{'// reporter mode (share-link flow)'}</h2>
+          <p className="section-body">
+            Visit{' '}
+            <a className="link" href="?reporter">
+              ?reporter
+            </a>{' '}
+            to flip the playground into reporter mode. The auth adapter becomes{' '}
+            <code>localStorageReporter</code>, the drawer and overlay both prompt for a name
+            before accepting input, and the adapter's <code>currentUser</code> swaps to the new
+            identity on submit.{' '}
+            {reporterMode ? (
+              <button type="button" className="link-btn" onClick={resetReporter}>
+                clear stored name + reload
+              </button>
+            ) : (
+              <span className="hint">
+                You&apos;re currently in default-auth mode (instant demo user).
+              </span>
+            )}
+          </p>
         </section>
 
         <section>
@@ -394,6 +460,30 @@ export default function Home() {
         .kbd {
           color: var(--teb-text-primary);
           margin-right: 2px;
+        }
+
+        .link {
+          color: var(--teb-signal);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+        .link:hover { color: var(--teb-secondary); }
+
+        .link-btn {
+          background: transparent;
+          border: 0;
+          padding: 0;
+          color: var(--teb-signal);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          font: inherit;
+          cursor: pointer;
+        }
+        .link-btn:hover { color: var(--teb-secondary); }
+
+        .hint {
+          color: var(--teb-text-secondary);
+          font-style: italic;
         }
 
         .overlay-surface {

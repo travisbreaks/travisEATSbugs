@@ -38,11 +38,11 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 - [x] Migrations ported from Pivotal page-notes (043 base + 045 resolution + 058 overlap), consolidated into a single `001_annotations.sql` with the unified anchor union schema
 - [~] Cloudflare Worker scaffolded at `apps/worker/`; deploy to `eats.travisfixes.com` pending (needs `wrangler login` + `wrangler d1 create` + DNS edit per `apps/worker/README.md`)
 - [x] Tokenized unguessable share-link mode: HMAC-SHA256 sign + verify primitive at `apps/worker/src/share-token.ts`; worker auth accepts share tokens as scoped-reporter identity. Tested with tamper-detection + expiry edge cases.
-- [ ] Reporter name prompt on first comment, stored in localStorage (widget-core change, next push)
+- [x] Reporter name prompt on first comment: `localStorageReporter` AuthAdapter + `setReporterName` / `clearReporterName` helpers + `reporterPrompt` config on drawer + overlay. Prompt blocks compose until a name is set; on submit, name persists to localStorage and adapters with `setCurrentUser` swap identity at runtime. Playground demo at `?reporter`.
 - [x] Audit log hook: widget-side `onAudit` callback in `WidgetOpts` (fires on create/update/delete via the exported `wrapWithAudit` helper) + adapter-side `annotation_audit_log` table (worker writes on every mutation). Both layers independent; hosts pick either, both, or neither.
 - [x] Bug-button auto-wire: `init({ onToggle })` callback in `bug-mode.ts` closes the manual shadow-root-attach workaround. Playground uses it as the canonical pattern.
 
-Live deploy at `eats.travisfixes.com` is the remaining v0.2 item (needs `wrangler login` + DNS access). Reporter name prompt deferred to a follow-up since it's a drawer/overlay UX change.
+Live deploy at `eats.travisfixes.com` is the only remaining v0.2 item (needs `wrangler login` + DNS access). All widget-side v0.2 work shipped.
 
 ## v0.3: Pivotal cutover
 
