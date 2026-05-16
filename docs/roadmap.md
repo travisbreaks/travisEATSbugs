@@ -33,13 +33,15 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 ## v0.2: Backend adapters
 
-- [ ] `@travisbreaks/travisEATSbugs-cloudflare` (D1 + R2 + worker)
-- [ ] `@travisbreaks/travisEATSbugs-http` (BYO backend)
-- [ ] Cloudflare Worker deployed at `eats.travisfixes.com` as the default hosted backend
-- [ ] Migrations ported from Pivotal page-notes (043 base + 045 resolution + 058 overlap), namespaced for adapter use
+- [x] `@travisbreaks/travisEATSbugs-cloudflare` package: D1-backed `ApiAdapter` with full CRUD + UpdatePatch discrimination + audit log table (16/16 tests green, 10 KB ESM)
+- [x] `@travisbreaks/travisEATSbugs-http` package: fetch-backed `ApiAdapter` with REST contract + Authorization header + extra headers (12/12 tests green, 3 KB ESM)
+- [x] Migrations ported from Pivotal page-notes (043 base + 045 resolution + 058 overlap), consolidated into a single `001_annotations.sql` with the unified anchor union schema
+- [ ] Cloudflare Worker scaffolded + deployed at `eats.travisfixes.com` as the default hosted backend
 - [ ] Tokenized unguessable share-link mode (reporter mode, no signup)
 - [ ] Reporter name prompt on first comment, stored in localStorage
-- [ ] Audit log hook (optional `onAudit` callback for host apps)
+- [ ] Audit log hook (optional `onAudit` callback for host apps); adapter-side audit table shipped, widget-side callback pending
+
+Adapter packages land on branch `feat-v02-adapters-2026-05-16`. Worker + DNS + share-link + reporter-prompt is the next push.
 
 ## v0.3: Pivotal cutover
 
