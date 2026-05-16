@@ -49,7 +49,8 @@ describe('detectBrowser', () => {
   })
 
   it('detects Firefox with version', () => {
-    const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
+    const ua =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
     expect(detectBrowser(ua)).toEqual({ name: 'Firefox', version: '120.0' })
   })
 
@@ -102,10 +103,13 @@ describe('captureEnvironment', () => {
   })
 
   it('returns null in non-browser contexts', () => {
-    // Simulate SSR: stash window globally, blank it out, restore.
+    // Simulate SSR: stash window globally, blank it out, restore. Setting
+    // to undefined is not equivalent here — captureEnvironment checks
+    // `typeof window === 'undefined'`, which is true for both a literal
+    // delete AND for `= undefined`, so either works. Using `= undefined`
+    // satisfies biome's noDelete rule.
     const savedWindow = globalThis.window
-    // @ts-expect-error: test-only delete
-    delete (globalThis as { window?: unknown }).window
+    ;(globalThis as { window?: unknown }).window = undefined
     const env = captureEnvironment()
     expect(env).toBe(null)
     ;(globalThis as { window?: unknown }).window = savedWindow
@@ -117,22 +121,19 @@ describe('integration: real-world UA fingerprints', () => {
   const fixtures: Fixture[] = [
     {
       name: 'Mac Chrome 120',
-      ua:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.71 Safari/537.36',
+      ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.71 Safari/537.36',
       os: 'Mac OS',
       browser: 'Chrome',
     },
     {
       name: 'Win 11 Edge 120',
-      ua:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+      ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
       os: 'Windows 10',
       browser: 'Edge',
     },
     {
       name: 'iPad Safari 17',
-      ua:
-        'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      ua: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       os: 'iOS',
       browser: 'Safari',
     },

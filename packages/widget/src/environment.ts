@@ -82,8 +82,7 @@ export function captureEnvironment(): Environment | null {
     return null
   }
   const ua = navigator.userAgent || ''
-  const uaData = (navigator as Navigator & { userAgentData?: UserAgentDataLike })
-    .userAgentData
+  const uaData = (navigator as Navigator & { userAgentData?: UserAgentDataLike }).userAgentData
   const platform = uaData?.platform ?? (navigator as Navigator & { platform?: string }).platform
   const os = detectOs(ua, platform)
   const browser = detectBrowser(ua)
