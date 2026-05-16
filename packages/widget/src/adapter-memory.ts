@@ -145,25 +145,31 @@ function validatePatch(patch: UpdatePatch): void {
   const resolvedPR = hasResolvedPR ? (patch as { resolvedPR: number | null }).resolvedPR : undefined
   const hasOverlap = 'relatedIds' in patch || 'dupOf' in patch || 'resolutionNote' in patch
   const hasTriage = 'triage' in patch
+  const hasAnchor = 'anchor' in patch
   const isReopen = hasResolvedPR && resolvedPR === null
   const isResolve = hasResolvedPR && typeof resolvedPR === 'number'
 
-  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage)) {
+  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage || hasAnchor)) {
     throw new Error('MemoryAdapter: body edit cannot be combined with resolution or overlap fields')
   }
   if (isReopen && hasOverlap) {
     // Reopen clears resolution columns; overlap fields are not allowed in a reopen.
     throw new Error('MemoryAdapter: reopen patch cannot carry overlap fields')
   }
-  if (hasTriage && (hasResolvedPR || hasOverlap)) {
+  if (hasTriage && (hasResolvedPR || hasOverlap || hasAnchor)) {
     throw new Error(
       'MemoryAdapter: triage patch cannot be combined with resolution or overlap fields',
     )
   }
-  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage) {
+  if (hasAnchor && (hasResolvedPR || hasOverlap)) {
+    throw new Error(
+      'MemoryAdapter: anchor patch cannot be combined with resolution or overlap fields',
+    )
+  }
+  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage && !hasAnchor) {
     throw new Error('MemoryAdapter: empty patch')
   }
-  // resolve OR overlap-only OR triage are all valid; nothing more to check.
+  // resolve OR overlap-only OR triage OR anchor are all valid; nothing more to check.
   void isResolve
 }
 
@@ -216,6 +222,11 @@ function applyPatch(
       triage: { ...triagePatch.triage, triagedAt: triagePatch.triage.triagedAt ?? ts },
       modifiedAt: ts,
     }
+  }
+  // Anchor (drag-to-reposition for spatial pins; selector re-wiring for route)
+  if ('anchor' in patch) {
+    const anchorPatch = patch as Extract<UpdatePatch, { anchor: unknown }>
+    return { ...existing, anchor: anchorPatch.anchor as Annotation['anchor'], modifiedAt: ts }
   }
   // Overlap-only
   const overlap = patch as { relatedIds?: string[]; dupOf?: string }
