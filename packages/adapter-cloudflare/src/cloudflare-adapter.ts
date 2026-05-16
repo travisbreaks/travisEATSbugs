@@ -25,6 +25,7 @@ type AnnotationRow = {
   anchor_mode: 'route' | 'spatial'
   anchor_path: string | null
   anchor_selector: string | null
+  anchor_xpath: string | null
   anchor_text_quote_exact: string | null
   anchor_text_quote_prefix: string | null
   anchor_text_quote_suffix: string | null
@@ -106,13 +107,13 @@ export class CloudflareAdapter implements ApiAdapter {
     const sql = `
       INSERT INTO annotations (
         id, anchor_mode,
-        anchor_path, anchor_selector,
+        anchor_path, anchor_selector, anchor_xpath,
         anchor_text_quote_exact, anchor_text_quote_prefix, anchor_text_quote_suffix,
         anchor_viewport_x, anchor_viewport_y, anchor_viewport_w, anchor_viewport_h,
         anchor_surface_id, anchor_surface_kind, anchor_x, anchor_y,
         body, author_id, author_display, author_avatar_url,
         created_at, modified_at, state, severity
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
     const stmt = this.db
       .prepare(sql)
@@ -121,6 +122,7 @@ export class CloudflareAdapter implements ApiAdapter {
         anchorCols.mode,
         anchorCols.path,
         anchorCols.selector,
+        anchorCols.xpath,
         anchorCols.text_quote_exact,
         anchorCols.text_quote_prefix,
         anchorCols.text_quote_suffix,
@@ -298,6 +300,7 @@ type AnchorCols = {
   mode: 'route' | 'spatial'
   path: string | null
   selector: string | null
+  xpath: string | null
   text_quote_exact: string | null
   text_quote_prefix: string | null
   text_quote_suffix: string | null
@@ -316,6 +319,7 @@ function serializeAnchor(anchor: AnnotationAnchor): AnchorCols {
     mode: anchor.mode,
     path: null,
     selector: null,
+    xpath: null,
     text_quote_exact: null,
     text_quote_prefix: null,
     text_quote_suffix: null,
@@ -333,6 +337,7 @@ function serializeAnchor(anchor: AnnotationAnchor): AnchorCols {
       ...empty,
       path: anchor.path,
       selector: anchor.selector ?? null,
+      xpath: anchor.xpath ?? null,
       text_quote_exact: anchor.textQuote?.exact ?? null,
       text_quote_prefix: anchor.textQuote?.prefix ?? null,
       text_quote_suffix: anchor.textQuote?.suffix ?? null,
@@ -358,6 +363,7 @@ function rowToAnnotation(row: AnnotationRow): Annotation {
           mode: 'route',
           path: row.anchor_path ?? '',
           ...(row.anchor_selector ? { selector: row.anchor_selector } : {}),
+          ...(row.anchor_xpath ? { xpath: row.anchor_xpath } : {}),
           ...(row.anchor_text_quote_exact
             ? {
                 textQuote: {

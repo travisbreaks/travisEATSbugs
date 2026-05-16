@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS annotations (
   -- route-mode fields
   anchor_path TEXT,
   anchor_selector TEXT,
+  anchor_xpath TEXT,
   anchor_text_quote_exact TEXT,
   anchor_text_quote_prefix TEXT,
   anchor_text_quote_suffix TEXT,
