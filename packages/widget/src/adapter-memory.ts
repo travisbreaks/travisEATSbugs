@@ -65,6 +65,7 @@ export class MemoryAdapter implements ApiAdapter {
       state: 'open',
       ...(input.severity ? { severity: input.severity } : {}),
       ...(input.screenshot ? { screenshot: input.screenshot } : {}),
+      ...(input.environment ? { environment: input.environment } : {}),
     }
     this.store.set(id, annotation)
     return annotation

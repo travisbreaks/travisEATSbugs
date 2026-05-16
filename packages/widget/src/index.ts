@@ -9,6 +9,7 @@ export type {
   AnchorQuery,
   AuthorRef,
   CreateInput,
+  Environment,
   ListQuery,
   TextQuote,
   ThreadEntry,
@@ -16,6 +17,9 @@ export type {
   UpdatePatch,
   Viewport,
 } from './types'
+
+// Environment capture (BugHerd "Additional Info" parity)
+export { captureEnvironment, detectBrowser, detectOs } from './environment'
 
 // Adapter contracts
 export type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
@@ -69,6 +73,9 @@ export {
   type OverlayOpts,
   type OverlayHeaderMode,
 } from './overlay'
+
+// Page mode: BugHerd core loop (click anywhere on a live page, drop a pin)
+export { AnnotationPageMode, type PageModeOpts } from './page-mode'
 
 // Unified facade
 export {

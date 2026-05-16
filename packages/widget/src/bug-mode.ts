@@ -62,14 +62,14 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
   style.textContent = `
     :host {
       /* Theme tokens. Host pages override via :root or body custom properties. */
-      --teb-bg: #fcf6ec;
+      --teb-bg: #ffffff;
       --teb-fg: #0c0908;
       --teb-shadow: rgba(0, 0, 0, 0.22);
       --teb-glow: rgba(255, 42, 109, 0.35);
       --teb-z: 2147483647;
-      --teb-size: 56px;
-      --teb-radius: 14px;
-      --teb-offset: 24px;
+      --teb-size: 48px;
+      --teb-radius: 12px;
+      --teb-offset: 22px;
       --teb-ease: cubic-bezier(0.45, 0, 0.55, 1);
 
       all: initial;
@@ -79,7 +79,7 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
     @media (max-width: 640px) {
       :host {
         --teb-offset: 18px;
-        --teb-size: 60px;
+        --teb-size: 52px;
       }
     }
 
@@ -133,8 +133,8 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
     }
 
     /* .mark wraps the SVG so we can stack ambient transforms here without
-       fighting the button's hover/active scale. Sticky-note feel:
-       slow wobble + occasional micro-twitch on the 95% mark. */
+       fighting the button's hover/active scale. Sticky-note wiggle: small
+       continuous sway, then a punchy three-frame twitch at the 88-94% mark. */
     .mark {
       display: flex;
       width: 100%;
@@ -142,7 +142,7 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       align-items: center;
       justify-content: center;
       transform-origin: 50% 60%;
-      animation: teb-sticky 7800ms var(--teb-ease) infinite;
+      animation: teb-sticky 4800ms var(--teb-ease) infinite;
       will-change: transform;
     }
 
@@ -208,16 +208,21 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       }
     }
 
-    /* Sticky-note wobble (slow, ambient) with a 240ms micro-twitch
-       at the 96% mark: the bug "notices" something every 7.8s.
-       Transform-only, applied to .mark wrapper. */
+    /* Sticky-note wiggle: lively but not seizure-y. Cycle of small
+       sways with a punchy three-frame twitch at 88-94% so the bug
+       "notices" something. Transform-only, applied to .mark wrapper.
+       4.8s total cycle so it feels responsive without being annoying. */
     @keyframes teb-sticky {
-      0% { transform: rotate(-0.6deg) translateY(0); }
-      45% { transform: rotate(0.6deg) translateY(-1px); }
-      90% { transform: rotate(-0.4deg) translateY(0); }
-      96% { transform: rotate(-1.4deg) translateY(-0.5px); }
-      98% { transform: rotate(0.9deg) translateY(0); }
-      100% { transform: rotate(-0.6deg) translateY(0); }
+      0% { transform: rotate(-3deg) translate(0, 0); }
+      18% { transform: rotate(2.5deg) translate(0.5px, -0.5px); }
+      35% { transform: rotate(-2deg) translate(-0.5px, 0); }
+      52% { transform: rotate(3deg) translate(0, -0.5px); }
+      70% { transform: rotate(-1.5deg) translate(0, 0); }
+      85% { transform: rotate(0deg) translate(0, 0); }
+      88% { transform: rotate(-8deg) translate(-1px, -0.5px); }
+      91% { transform: rotate(6deg) translate(1px, 0); }
+      94% { transform: rotate(-4deg) translate(0, 0); }
+      100% { transform: rotate(-3deg) translate(0, 0); }
     }
 
     /* MANDATORY per design-canon §9a. Kill every ambient. */
