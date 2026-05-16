@@ -36,6 +36,10 @@ export {
 export { captureRouteAnchor } from './anchor-route'
 export { captureSpatialAnchor, type SpatialCaptureCoords } from './anchor-spatial'
 
+// Screenshot capture (v0.5 first-mover)
+export { defaultScreenshotCapture, wrapWithScreenshot } from './screenshot'
+export type { ScreenshotCaptureContext, ScreenshotCaptureFn } from './types'
+
 // Render modes
 export { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 export {

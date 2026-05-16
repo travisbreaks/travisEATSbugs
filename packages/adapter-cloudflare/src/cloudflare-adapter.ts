@@ -112,8 +112,9 @@ export class CloudflareAdapter implements ApiAdapter {
         anchor_viewport_x, anchor_viewport_y, anchor_viewport_w, anchor_viewport_h,
         anchor_surface_id, anchor_surface_kind, anchor_x, anchor_y,
         body, author_id, author_display, author_avatar_url,
-        created_at, modified_at, state, severity
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_at, modified_at, state, severity,
+        screenshot_url, screenshot_w, screenshot_h
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
     const stmt = this.db
       .prepare(sql)
@@ -142,6 +143,9 @@ export class CloudflareAdapter implements ApiAdapter {
         ts,
         'open',
         input.severity ?? null,
+        input.screenshot?.url ?? null,
+        input.screenshot?.w ?? null,
+        input.screenshot?.h ?? null,
       )
     await stmt.run()
     await this.audit(id, 'create')

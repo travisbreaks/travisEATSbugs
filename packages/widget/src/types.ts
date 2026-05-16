@@ -102,4 +102,30 @@ export type ListQuery = {
 
 export type CreateInput = Pick<Annotation, 'anchor' | 'body'> & {
   severity?: Annotation['severity']
+  /** Optional screenshot captured at create time (v0.5 modern-screenshot
+   * integration). Adapters that persist Annotation.screenshot should
+   * carry this through; adapters that don't can ignore it. */
+  screenshot?: Annotation['screenshot']
+}
+
+/**
+ * Screenshot capture callback. Called by the widget BEFORE
+ * `api.create()` runs. Return `null` to skip (e.g. SSR, no
+ * permissions, capture failed). The widget passes the result through
+ * to the adapter as `CreateInput.screenshot`.
+ *
+ * Default implementation in `screenshot.ts` uses `modern-screenshot`
+ * against `document.body` and returns a data URL. Hosts wire their
+ * own R2 / S3 / Cloudinary upload here for production.
+ */
+export type ScreenshotCaptureFn = (
+  context: ScreenshotCaptureContext,
+) => Promise<Annotation['screenshot'] | null>
+
+export type ScreenshotCaptureContext = {
+  /** The element being annotated (drawer mode: the page; overlay mode:
+   * the surface). */
+  target: Element | null
+  /** Hint at which render mode triggered the capture. */
+  renderMode: 'drawer' | 'overlay'
 }

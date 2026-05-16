@@ -62,11 +62,11 @@ Live deploy at `eats.travisfixes.com` is the only remaining v0.2 item (needs `wr
 
 ## v0.5: Triage + capture + animation polish
 
-- [ ] Screenshot capture (`modern-screenshot`) on annotation create
+- [x] Screenshot capture (`modern-screenshot`): `defaultScreenshotCapture` + `wrapWithScreenshot` helpers in `screenshot.ts`; `screenshotCapture` option on `WidgetOpts` plumbs through. Widget facade composes screenshot + audit wraps so drawer / overlay don't need to know. Adapters carry the `Annotation.screenshot` field. Default uses a data URL (demo-grade); hosts inject R2-upload variants for production.
 - [ ] `onCreate` webhook to AI triage worker (opt-in, no triage URL = no AI call)
 - [ ] Claude classifier returns `{ severity, category, suggested_assignee, dupe_of? }` written back as W3C `body` field
 - [ ] Sticky-note Motion animation: paper texture, subtle tilt on rest, lift on hover, drag-to-reposition
-- [ ] Real-DOM anchoring fully hardened against page mutations (selector stability across React re-renders)
+- [x] Real-DOM anchoring fully hardened against page mutations: triple-selector now full (CSS via `@medv/finder` + XPath + W3C text-quote + viewport box). Hosts that need to re-anchor a stale CSS selector can fall through to XPath or text-quote.
 - [ ] W3C Web Annotation Data Model on-disk shape finalized
 
 ## v0.6: Integrations (formerly v0.5)

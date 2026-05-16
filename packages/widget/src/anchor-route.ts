@@ -116,24 +116,25 @@ function getViewport(target: Element): Viewport | undefined {
 function generateXPath(target: Element): string | undefined {
   if (!(target instanceof Element)) return undefined
   const segments: string[] = []
-  let el: Element | null = target
-  while (el && el.nodeType === 1 /* ELEMENT_NODE */) {
-    const tag = el.tagName.toLowerCase()
-    const parent = el.parentElement
+  let cursor: Element | null = target
+  while (cursor && cursor.nodeType === 1 /* ELEMENT_NODE */) {
+    const node: Element = cursor
+    const tag = node.tagName.toLowerCase()
+    const parent: Element | null = node.parentElement
     if (!parent) {
       segments.unshift(tag)
       break
     }
-    const sameTagSiblings = Array.from(parent.children).filter(
-      (c) => c.tagName === el?.tagName,
+    const sameTagSiblings: Element[] = Array.from(parent.children).filter(
+      (c: Element) => c.tagName === node.tagName,
     )
     if (sameTagSiblings.length === 1) {
       segments.unshift(tag)
     } else {
-      const idx = sameTagSiblings.indexOf(el) + 1
+      const idx = sameTagSiblings.indexOf(node) + 1
       segments.unshift(`${tag}[${idx}]`)
     }
-    el = parent
+    cursor = parent
   }
   if (segments.length === 0) return undefined
   return `/${segments.join('/')}`
