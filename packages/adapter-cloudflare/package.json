@@ -1,0 +1,63 @@
+{
+  "name": "@travisbreaks/travisEATSbugs-cloudflare",
+  "version": "0.0.1-alpha.0",
+  "description": "Cloudflare D1 + R2 adapter for travisEATSbugs.",
+  "license": "Apache-2.0",
+  "author": "Travis Bonnet <travisbonnet@gmail.com>",
+  "homepage": "https://github.com/travisbreaks/travisEATSbugs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/travisbreaks/travisEATSbugs.git",
+    "directory": "packages/adapter-cloudflare"
+  },
+  "bugs": {
+    "url": "https://github.com/travisbreaks/travisEATSbugs/issues"
+  },
+  "keywords": [
+    "travisEATSbugs",
+    "cloudflare",
+    "d1",
+    "adapter"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./migrations/001_annotations.sql": "./migrations/001_annotations.sql"
+  },
+  "files": [
+    "dist",
+    "migrations",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src"
+  },
+  "dependencies": {
+    "@travisbreaks/travisEATSbugs": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.9.0",
+    "better-sqlite3": "^11.5.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
