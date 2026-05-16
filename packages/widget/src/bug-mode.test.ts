@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { destroy, init } from './bug-mode'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { destroy, init, toggle } from './bug-mode'
 
 describe('bug-mode v0', () => {
   afterEach(() => {
@@ -33,5 +33,53 @@ describe('bug-mode v0', () => {
     destroy()
     const host = document.getElementById('travisEATSbugs-host')
     expect(host).toBeNull()
+  })
+
+  describe('onToggle callback', () => {
+    it('fires on click with the new isActive value', () => {
+      const onToggle = vi.fn()
+      init({ onToggle })
+      const btn = document
+        .getElementById('travisEATSbugs-host')
+        ?.shadowRoot?.querySelector('button')
+      btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(onToggle).toHaveBeenCalledTimes(1)
+      expect(onToggle).toHaveBeenLastCalledWith(true)
+      btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(onToggle).toHaveBeenCalledTimes(2)
+      expect(onToggle).toHaveBeenLastCalledWith(false)
+    })
+
+    it('also fires when toggle() is called directly (programmatic)', () => {
+      const onToggle = vi.fn()
+      init({ onToggle })
+      toggle()
+      expect(onToggle).toHaveBeenCalledWith(true)
+    })
+
+    it('swallows callback errors so the button state stays consistent', () => {
+      const onToggle = vi.fn(() => {
+        throw new Error('host bug')
+      })
+      init({ onToggle })
+      const btn = document
+        .getElementById('travisEATSbugs-host')
+        ?.shadowRoot?.querySelector('button')
+      expect(() => btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))).not.toThrow()
+      // The button still got its aria-pressed flipped to true even though
+      // the host callback threw.
+      expect(btn?.getAttribute('aria-pressed')).toBe('true')
+    })
+
+    it('destroy() clears the handler so next init starts fresh', () => {
+      const first = vi.fn()
+      init({ onToggle: first })
+      destroy()
+      const second = vi.fn()
+      init({ onToggle: second })
+      toggle()
+      expect(first).not.toHaveBeenCalled()
+      expect(second).toHaveBeenCalledTimes(1)
+    })
   })
 })
