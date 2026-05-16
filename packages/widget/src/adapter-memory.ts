@@ -88,6 +88,16 @@ export class MemoryAdapter implements ApiAdapter {
     this.store.delete(id)
   }
 
+  /**
+   * Swap the current-user identity at runtime. Used by the reporter
+   * name-prompt flow: when a previously anonymous reporter sets their
+   * display name, the widget calls this so subsequent annotations are
+   * stamped with the new identity instead of the constructor default.
+   */
+  setCurrentUser(user: AuthorRef): void {
+    this.currentUser = user
+  }
+
   async listAuthors(): Promise<AuthorRef[]> {
     const seen = new Map<string, AuthorRef>()
     for (const a of this.store.values()) {

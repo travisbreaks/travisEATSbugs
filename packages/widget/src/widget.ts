@@ -7,9 +7,11 @@
  */
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
-import { AnnotationDrawer, type DrawerOpts } from './drawer'
+import { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 import { AnnotationOverlay, type OverlayHeaderMode, type OverlayOpts } from './overlay'
 import type { Annotation, CreateInput, UpdatePatch } from './types'
+
+export type { ReporterPromptConfig } from './drawer'
 
 /**
  * Audit event surfaced to the host app on every successful mutation. The
@@ -98,6 +100,12 @@ export type WidgetOpts = {
    * realtime broadcast.
    */
   onAudit?: AuditFn
+  /**
+   * Reporter mode: when `auth.getCurrentUser()` returns null, prompt the
+   * reporter for a display name before allowing compose / click-to-place.
+   * Name persists to localStorage. Plumbs through to drawer + overlay.
+   */
+  reporterPrompt?: ReporterPromptConfig
 } & WidgetMount
 
 export class AnnotationWidget {
@@ -117,6 +125,7 @@ export class AnnotationWidget {
         ...(opts.theme ? { theme: opts.theme } : {}),
         ...(opts.position ? { position: opts.position } : {}),
         ...(opts.open ? { open: opts.open } : {}),
+        ...(opts.reporterPrompt ? { reporterPrompt: opts.reporterPrompt } : {}),
       }
       this.drawer = new AnnotationDrawer(drawerOpts)
     } else {
@@ -130,6 +139,7 @@ export class AnnotationWidget {
         ...(opts.showSidebar !== undefined ? { showSidebar: opts.showSidebar } : {}),
         ...(opts.headerMode ? { headerMode: opts.headerMode } : {}),
         ...(opts.initialFilter ? { initialFilter: opts.initialFilter } : {}),
+        ...(opts.reporterPrompt ? { reporterPrompt: opts.reporterPrompt } : {}),
       }
       this.overlay = new AnnotationOverlay(overlayOpts)
     }

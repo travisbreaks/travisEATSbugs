@@ -10,7 +10,9 @@
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { captureSpatialAnchor } from './anchor-spatial'
-import type { Annotation } from './types'
+import type { ReporterPromptConfig } from './drawer'
+import { setReporterName } from './reporter'
+import type { Annotation, AuthorRef } from './types'
 
 export type OverlayHeaderMode = 'mac-chrome' | 'minimal' | 'none'
 
@@ -29,6 +31,12 @@ export type OverlayOpts = {
   headerMode?: OverlayHeaderMode
   /** Initial filter. Default 'all'. */
   initialFilter?: 'all' | 'open' | 'resolved'
+  /**
+   * Reporter mode: when `auth.getCurrentUser()` returns null, surface a
+   * name-input modal over the canvas before click-to-place is allowed.
+   * Once the reporter sets a name, the surface accepts clicks normally.
+   */
+  reporterPrompt?: ReporterPromptConfig
 }
 
 type DraftState = { x: number; y: number; body: string } | null
@@ -45,6 +53,7 @@ export class AnnotationOverlay {
   private draft: DraftState = null
   private isMounted = false
   private surfaceClickHandler: ((e: MouseEvent) => void) | null = null
+  private awaitingReporter = false
 
   constructor(opts: OverlayOpts) {
     this.opts = opts
@@ -66,7 +75,55 @@ export class AnnotationOverlay {
     // because the markers and draft form live inside the shadow.
     this.surfaceClickHandler = (e: MouseEvent) => this.handleSurfaceClick(e)
     this.opts.surface.addEventListener('click', this.surfaceClickHandler)
+    this.wireReporterPrompt()
+    void this.checkReporter()
     this.refresh()
+  }
+
+  private async checkReporter(): Promise<void> {
+    if (!this.opts.reporterPrompt || !this.opts.auth) return
+    try {
+      const user = await this.opts.auth.getCurrentUser()
+      this.awaitingReporter = user === null
+    } catch {
+      this.awaitingReporter = true
+    }
+    this.render()
+  }
+
+  private wireReporterPrompt(): void {
+    if (!this.shadow) return
+    const input = this.shadow.querySelector<HTMLInputElement>('.reporter-input')
+    const btn = this.shadow.querySelector<HTMLButtonElement>('.reporter-submit-btn')
+    if (!input || !btn) return
+    const submit = () => {
+      const name = input.value.trim()
+      if (!name) return
+      const ref = setReporterName(name, {
+        ...(this.opts.reporterPrompt?.namespace
+          ? { namespace: this.opts.reporterPrompt.namespace }
+          : {}),
+      })
+      const api = this.opts.api as ApiAdapter & {
+        setCurrentUser?: (user: AuthorRef) => void
+      }
+      if (typeof api.setCurrentUser === 'function') {
+        try {
+          api.setCurrentUser(ref)
+        } catch {
+          // Adapter rejected the swap; auth still picks up the localStorage id.
+        }
+      }
+      this.awaitingReporter = false
+      this.render()
+    }
+    btn.addEventListener('click', submit)
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        submit()
+      }
+    })
   }
 
   unmount(): void {
@@ -99,6 +156,10 @@ export class AnnotationOverlay {
   }
 
   private handleSurfaceClick(e: MouseEvent): void {
+    // Reporter prompt still up: clicks on the surface are dropped until the
+    // reporter sets a name. The reporter-overlay block already covers the
+    // surface visually; this guard is the behavior-level twin.
+    if (this.awaitingReporter) return
     // Ignore clicks that originate inside the shadow root (markers, sidebar).
     if (!(e.target instanceof Element)) return
     if (e.target.closest(`[${SHADOW_HOST_ATTR}]`)) return
@@ -149,6 +210,56 @@ export class AnnotationOverlay {
         position: absolute;
         inset: 0;
         pointer-events: none;
+      }
+
+      .reporter-overlay {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--teb-fg) 70%, transparent);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+        z-index: 10;
+      }
+      .reporter-overlay[hidden] { display: none; }
+      .reporter-card {
+        background: var(--teb-surface-1);
+        border-radius: var(--teb-radius);
+        padding: 22px;
+        max-width: 340px;
+        width: 80%;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .reporter-label {
+        margin: 0;
+        font-size: 14px;
+        color: var(--teb-fg);
+        line-height: 1.4;
+      }
+      .reporter-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .reporter-input {
+        flex: 1;
+        font: inherit;
+        color: inherit;
+        background: var(--teb-surface-2);
+        border: 1px solid var(--teb-border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        box-sizing: border-box;
+      }
+      .reporter-input:focus-visible {
+        outline: 2px solid var(--teb-accent);
+        outline-offset: 1px;
       }
 
       .marker {
@@ -331,10 +442,29 @@ export class AnnotationOverlay {
   private buildPanel(): HTMLDivElement {
     const wrap = document.createElement('div')
     wrap.className = 'layer'
+    const reporterPrompt =
+      this.opts.reporterPrompt?.prompt ?? 'What name should we put on your notes?'
+    const reporterPlaceholder = this.opts.reporterPrompt?.placeholder ?? 'Your name'
+    const reporterSubmit = this.opts.reporterPrompt?.submitLabel ?? 'Continue'
     wrap.innerHTML = `
       ${this.renderHeader()}
       <div class="markers-layer"></div>
       <div class="draft-layer"></div>
+      <div class="reporter-overlay" hidden>
+        <div class="reporter-card">
+          <p class="reporter-label">${escapeHtml(reporterPrompt)}</p>
+          <div class="reporter-row">
+            <input
+              class="reporter-input"
+              type="text"
+              aria-label="Your display name"
+              placeholder="${escapeHtml(reporterPlaceholder)}"
+              maxlength="60"
+            />
+            <button class="btn primary reporter-submit-btn" type="button">${escapeHtml(reporterSubmit)}</button>
+          </div>
+        </div>
+      </div>
       ${this.opts.showSidebar !== false ? '<aside class="sidebar"></aside>' : ''}
     `
     return wrap
@@ -351,6 +481,8 @@ export class AnnotationOverlay {
 
   private render(): void {
     if (!this.shadow) return
+    const overlay = this.shadow.querySelector<HTMLDivElement>('.reporter-overlay')
+    if (overlay) overlay.hidden = !this.awaitingReporter
     this.renderMarkers()
     this.renderDraft()
     if (this.opts.showSidebar !== false) this.renderSidebar()
