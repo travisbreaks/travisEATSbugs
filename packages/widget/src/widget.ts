@@ -9,6 +9,67 @@
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { AnnotationDrawer, type DrawerOpts } from './drawer'
 import { AnnotationOverlay, type OverlayHeaderMode, type OverlayOpts } from './overlay'
+import type { Annotation, CreateInput, UpdatePatch } from './types'
+
+/**
+ * Audit event surfaced to the host app on every successful mutation. The
+ * widget wraps the host's ApiAdapter at construction time so drawer +
+ * overlay code paths don't need to know about audit; they just call the
+ * adapter as usual, and the wrapper fires the callback on success.
+ *
+ * The adapter-side `audit` flag (e.g. CloudflareAdapter writes to
+ * annotation_audit_log) is independent of this widget-side hook. Hosts
+ * can use either, both, or neither.
+ */
+export type AuditEvent =
+  | { action: 'create'; annotation: Annotation }
+  | { action: 'update'; id: string; patch: UpdatePatch; annotation: Annotation }
+  | { action: 'delete'; id: string }
+
+export type AuditFn = (event: AuditEvent) => void
+
+/**
+ * Wrap an ApiAdapter so a callback fires after each successful mutation.
+ * Exported so hosts can compose their own wraps if needed (e.g. wrap
+ * twice for an audit log + a realtime broadcast). The widget facade uses
+ * this internally when `onAudit` is set on `WidgetOpts`.
+ */
+export function wrapWithAudit(api: ApiAdapter, onAudit: AuditFn): ApiAdapter {
+  const wrapped: ApiAdapter = {
+    list: (q) => api.list(q),
+    create: async (input: CreateInput) => {
+      const result = await api.create(input)
+      try {
+        onAudit({ action: 'create', annotation: result })
+      } catch {
+        // Host callback threw; do not break the mutation pipeline.
+      }
+      return result
+    },
+    update: async (id: string, patch: UpdatePatch) => {
+      const result = await api.update(id, patch)
+      try {
+        onAudit({ action: 'update', id, patch, annotation: result })
+      } catch {
+        // see above
+      }
+      return result
+    },
+    delete: async (id: string) => {
+      await api.delete(id)
+      try {
+        onAudit({ action: 'delete', id })
+      } catch {
+        // see above
+      }
+    },
+  }
+  if (api.listAuthors) {
+    const fn = api.listAuthors.bind(api)
+    wrapped.listAuthors = fn
+  }
+  return wrapped
+}
 
 export type WidgetMount =
   | {
@@ -30,6 +91,13 @@ export type WidgetOpts = {
   api: ApiAdapter
   auth?: AuthAdapter
   theme?: ThemeAdapter
+  /**
+   * Fires after every successful adapter mutation (create, update, delete).
+   * Errors thrown inside the callback are swallowed so a host bug does not
+   * break the mutation pipeline. Wire to your own audit log / analytics /
+   * realtime broadcast.
+   */
+  onAudit?: AuditFn
 } & WidgetMount
 
 export class AnnotationWidget {
@@ -39,9 +107,12 @@ export class AnnotationWidget {
 
   constructor(opts: WidgetOpts) {
     this.mode = opts.renderMode
+    // Wrap the host adapter so drawer + overlay don't need to know about
+    // onAudit. If no onAudit set, this is a no-op identity wrap.
+    const api = opts.onAudit ? wrapWithAudit(opts.api, opts.onAudit) : opts.api
     if (opts.renderMode === 'drawer') {
       const drawerOpts: DrawerOpts = {
-        api: opts.api,
+        api,
         ...(opts.auth ? { auth: opts.auth } : {}),
         ...(opts.theme ? { theme: opts.theme } : {}),
         ...(opts.position ? { position: opts.position } : {}),
@@ -50,7 +121,7 @@ export class AnnotationWidget {
       this.drawer = new AnnotationDrawer(drawerOpts)
     } else {
       const overlayOpts: OverlayOpts = {
-        api: opts.api,
+        api,
         surface: opts.surface,
         surfaceId: opts.surfaceId,
         ...(opts.auth ? { auth: opts.auth } : {}),

@@ -7,7 +7,7 @@ import { defaultAuth } from './auth-stub'
 import { AnnotationDrawer } from './drawer'
 import { AnnotationOverlay } from './overlay'
 import type { Annotation, AnnotationAnchor } from './types'
-import { AnnotationWidget, TravisEatsBugs } from './widget'
+import { AnnotationWidget, type AuditEvent, TravisEatsBugs, wrapWithAudit } from './widget'
 
 describe('Annotation type assignability', () => {
   it('accepts a route anchor', () => {
@@ -305,6 +305,76 @@ describe('defaultAuth', () => {
     const u = await defaultAuth.getCurrentUser()
     expect(u?.id).toBe('demo')
     expect(u?.display).toBe('You')
+  })
+})
+
+describe('wrapWithAudit', () => {
+  it('fires onAudit on create, update, delete (in order)', async () => {
+    const api = new MemoryAdapter()
+    const events: AuditEvent[] = []
+    const wrapped = wrapWithAudit(api, (e) => events.push(e))
+
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'one',
+    })
+    await wrapped.update(created.id, { body: 'two' })
+    await wrapped.delete(created.id)
+
+    expect(events.map((e) => e.action)).toEqual(['create', 'update', 'delete'])
+    if (events[0]?.action === 'create') {
+      expect(events[0].annotation.body).toBe('one')
+    }
+    if (events[1]?.action === 'update') {
+      expect(events[1].id).toBe(created.id)
+      expect(events[1].annotation.body).toBe('two')
+    }
+    if (events[2]?.action === 'delete') {
+      expect(events[2].id).toBe(created.id)
+    }
+  })
+
+  it('list passes through without firing onAudit (read-only)', async () => {
+    const api = new MemoryAdapter()
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+    const onAudit = vi.fn()
+    const wrapped = wrapWithAudit(api, onAudit)
+    const result = await wrapped.list()
+    expect(result).toHaveLength(1)
+    expect(onAudit).not.toHaveBeenCalled()
+  })
+
+  it('swallows host callback errors so mutations still resolve', async () => {
+    const api = new MemoryAdapter()
+    const wrapped = wrapWithAudit(api, () => {
+      throw new Error('host bug')
+    })
+    const created = await wrapped.create({
+      anchor: { mode: 'route', path: '/' },
+      body: 'x',
+    })
+    expect(created.body).toBe('x')
+    const updated = await wrapped.update(created.id, { body: 'y' })
+    expect(updated.body).toBe('y')
+    await expect(wrapped.delete(created.id)).resolves.toBeUndefined()
+  })
+
+  it('forwards listAuthors when the underlying adapter supports it', async () => {
+    const api = new MemoryAdapter()
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+    const wrapped = wrapWithAudit(api, () => {})
+    expect(wrapped.listAuthors).toBeDefined()
+    const authors = await wrapped.listAuthors?.()
+    expect(authors?.length ?? 0).toBeGreaterThan(0)
+  })
+
+  it('does NOT fire onAudit when the host bypasses the wrap', async () => {
+    const api = new MemoryAdapter()
+    const onAudit = vi.fn()
+    wrapWithAudit(api, onAudit)
+    // Mutate the underlying adapter directly; the wrap has no knowledge.
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'x' })
+    expect(onAudit).not.toHaveBeenCalled()
   })
 })
 

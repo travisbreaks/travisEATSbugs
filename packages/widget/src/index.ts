@@ -40,6 +40,9 @@ export {
 export {
   AnnotationWidget,
   TravisEatsBugs,
+  type AuditEvent,
+  type AuditFn,
   type WidgetMount,
   type WidgetOpts,
+  wrapWithAudit,
 } from './widget'

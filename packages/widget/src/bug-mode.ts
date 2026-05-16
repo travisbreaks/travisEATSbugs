@@ -19,6 +19,13 @@
 export interface InitOptions {
   project?: string
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  /**
+   * Fired on every click of the floating bug button, after the internal
+   * active state flips. Closes the "consumer wires this manually for v0.1"
+   * deferral: now you can pass `onToggle: () => widget.toggle()` instead
+   * of attaching a click listener to the shadow root.
+   */
+  onToggle?: (isActive: boolean) => void
 }
 
 const HOST_ID = 'travisEATSbugs-host'
@@ -30,6 +37,7 @@ const BRAND_MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 428
 let hostElement: HTMLElement | null = null
 let shadowRoot: ShadowRoot | null = null
 let isActive = false
+let onToggleHandler: ((isActive: boolean) => void) | null = null
 
 function buildButton(): HTMLButtonElement {
   const btn = document.createElement('button')
@@ -244,6 +252,7 @@ export function init(options: InitOptions = {}): void {
     return
   }
   const position = options.position ?? 'bottom-right'
+  onToggleHandler = options.onToggle ?? null
   hostElement = document.createElement('div')
   hostElement.id = HOST_ID
   shadowRoot = hostElement.attachShadow({ mode: 'open' })
@@ -260,7 +269,14 @@ export function toggle(): void {
   if (btn) {
     btn.setAttribute('aria-pressed', String(isActive))
   }
-  // v0.1 will wire this to actual bug-mode activation (cursor change, click anywhere to mark).
+  if (onToggleHandler) {
+    try {
+      onToggleHandler(isActive)
+    } catch {
+      // Host callback threw; swallow so the button state stays consistent
+      // with what was rendered. Consumers can wire their own try/catch.
+    }
+  }
 }
 
 export function destroy(): void {
@@ -270,4 +286,5 @@ export function destroy(): void {
   hostElement = null
   shadowRoot = null
   isActive = false
+  onToggleHandler = null
 }

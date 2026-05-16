@@ -1,12 +1,13 @@
 'use client'
 
 import {
+  type Annotation,
   AnnotationWidget,
+  type AuditEvent,
   MemoryAdapter,
   defaultAuth,
   destroy as destroyBugButton,
   init as initBugButton,
-  type Annotation,
 } from '@travisbreaks/travisEATSbugs'
 import { useEffect, useRef } from 'react'
 
@@ -61,9 +62,18 @@ export default function Home() {
     // overlay sees its spatial annotations through the same store.
     const api = new MemoryAdapter({ seed: SEED })
 
+    // Demo audit hook: log every mutation to the console. Real consumers
+    // (Pivotal admin inbox, Lion's Share /tracks aggregator) wire this to
+    // their own audit log + realtime broadcast.
+    const onAudit = (event: AuditEvent) => {
+      // biome-ignore lint/suspicious/noConsole: intentional demo logging
+      console.log('[travisEATSbugs audit]', event)
+    }
+
     const drawer = new AnnotationWidget({
       api,
       auth: defaultAuth,
+      onAudit,
       renderMode: 'drawer',
       // Sit left of the bug button so both are visible.
       position: { bottom: 24, right: 96 },
@@ -75,6 +85,7 @@ export default function Home() {
       overlay = new AnnotationWidget({
         api,
         auth: defaultAuth,
+        onAudit,
         renderMode: 'overlay',
         surface: surfaceRef.current,
         surfaceId: 'playground-canvas',
@@ -86,16 +97,15 @@ export default function Home() {
       overlay.mount()
     }
 
-    // v0 floating bug button (Shadow DOM, idempotent). Wire its click into
-    // the drawer's toggle so the icon doubles as the drawer trigger.
-    initBugButton({ project: 'playground' })
-    const host = document.getElementById('travisEATSbugs-host')
-    const btn = host?.shadowRoot?.querySelector('button')
-    const onBugClick = () => drawer.toggle()
-    btn?.addEventListener('click', onBugClick)
+    // v0 floating bug button. The new `onToggle` prop closes the
+    // "consumer wires this manually" deferral: no more shadow-root
+    // attach, just hand init() a callback that flips the drawer.
+    initBugButton({
+      project: 'playground',
+      onToggle: () => drawer.toggle(),
+    })
 
     return () => {
-      btn?.removeEventListener('click', onBugClick)
       drawer.destroy()
       overlay?.destroy()
       destroyBugButton()
