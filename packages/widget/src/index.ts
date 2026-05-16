@@ -44,6 +44,24 @@ export type { ScreenshotCaptureContext, ScreenshotCaptureFn } from './types'
 // AI triage onCreate hook (v0.5)
 export { httpTriage, type HttpTriageOptions, type TriageFn, wrapWithTriage } from './triage'
 
+// W3C Web Annotation Data Model conversion (v0.5)
+export {
+  fromW3C,
+  TEB_NAMESPACE,
+  toW3C,
+  W3C_CONTEXT,
+  type TebExtension,
+  type W3CAnnotation,
+  type W3CCreator,
+  type W3CCssSelector,
+  type W3CFragmentSelector,
+  type W3CSelector,
+  type W3CSpecificResource,
+  type W3CTextQuoteSelector,
+  type W3CTextualBody,
+  type W3CXPathSelector,
+} from './w3c'
+
 // Render modes
 export { AnnotationDrawer, type DrawerOpts, type ReporterPromptConfig } from './drawer'
 export {
