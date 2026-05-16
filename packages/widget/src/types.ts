@@ -85,6 +85,34 @@ export type TriageResult = {
   triagedAt?: number
 }
 
+/**
+ * Environment metadata captured at create time (BugHerd parity).
+ * Mirrors the "Additional Info" panel: URL, OS, browser + version, screen
+ * resolution, window size, color depth, plus a couple of extras useful for
+ * triage. Optional on the wire so old annotations without it still validate.
+ *
+ * Captured by `environment.ts#captureEnvironment()`. Rendered in the
+ * compose form and the read-back drawer panel.
+ */
+export type Environment = {
+  url: string
+  title: string
+  referrer: string
+  os: string
+  browser: string
+  browserVersion: string
+  userAgent: string
+  screenW: number
+  screenH: number
+  windowW: number
+  windowH: number
+  colorDepth: number
+  pixelRatio: number
+  language: string
+  timezone: string
+  capturedAt: number
+}
+
 export type Annotation = {
   id: string
   anchor: AnnotationAnchor
@@ -106,6 +134,10 @@ export type Annotation = {
    * Optional and additive: adapters that don't know about triage carry
    * the field through opaquely; consumers that don't want it ignore it. */
   triage?: TriageResult
+  /** Browser environment snapshot captured at create time. BugHerd-parity
+   * "Additional Info" payload. Optional so pre-environment annotations
+   * still validate. */
+  environment?: Environment
 }
 
 /**
@@ -142,6 +174,10 @@ export type CreateInput = Pick<Annotation, 'anchor' | 'body'> & {
    * integration). Adapters that persist Annotation.screenshot should
    * carry this through; adapters that don't can ignore it. */
   screenshot?: Annotation['screenshot']
+  /** Optional environment metadata captured at create time (BugHerd
+   * "Additional Info" panel). Adapters that persist Annotation.environment
+   * carry it through; adapters that don't can ignore it. */
+  environment?: Annotation['environment']
 }
 
 /**

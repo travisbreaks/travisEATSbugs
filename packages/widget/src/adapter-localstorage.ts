@@ -97,6 +97,7 @@ export class LocalStorageAdapter implements ApiAdapter {
       state: 'open',
       ...(input.severity ? { severity: input.severity } : {}),
       ...(input.screenshot ? { screenshot: input.screenshot } : {}),
+      ...(input.environment ? { environment: input.environment } : {}),
     }
     this.memory.push(annotation)
     this.persist()
