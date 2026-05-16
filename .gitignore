@@ -48,6 +48,9 @@ coverage/
 .wrangler/
 .dev.vars
 
+# pnpm pack output (build artifacts; never commit)
+*.tgz
+
 # Test artifacts
 test-results/
 playwright-report/

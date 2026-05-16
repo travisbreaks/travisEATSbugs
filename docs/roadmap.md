@@ -36,13 +36,13 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 - [x] `@travisbreaks/travisEATSbugs-cloudflare` package: D1-backed `ApiAdapter` with full CRUD + UpdatePatch discrimination + audit log table (16/16 tests green, 10 KB ESM)
 - [x] `@travisbreaks/travisEATSbugs-http` package: fetch-backed `ApiAdapter` with REST contract + Authorization header + extra headers (12/12 tests green, 3 KB ESM)
 - [x] Migrations ported from Pivotal page-notes (043 base + 045 resolution + 058 overlap), consolidated into a single `001_annotations.sql` with the unified anchor union schema
-- [~] Cloudflare Worker scaffolded at `apps/worker/`; deploy to `eats.travisfixes.com` pending (needs `wrangler login` + `wrangler d1 create` + DNS edit per `apps/worker/README.md`)
+- [x] Cloudflare Worker live at `https://eats.travisfixes.com` (deployed 2026-05-16). D1 `travisEATSbugs` provisioned (id `9118617e-0f72-401a-82e3-f1031648cb22`), both migrations applied remotely, secrets (`SHARE_TOKEN_SECRET`, `ANTHROPIC_API_KEY`, `MEMBER_TOKENS`) attached via `wrangler secret put` from keychain. Custom domain bound via CF API; cert auto-provisioned. Smoke tests green: unauth 401, member 200, POST round-trip persists, `/triage` returns a real Claude classification end-to-end.
 - [x] Tokenized unguessable share-link mode: HMAC-SHA256 sign + verify primitive at `apps/worker/src/share-token.ts`; worker auth accepts share tokens as scoped-reporter identity. Tested with tamper-detection + expiry edge cases.
 - [x] Reporter name prompt on first comment: `localStorageReporter` AuthAdapter + `setReporterName` / `clearReporterName` helpers + `reporterPrompt` config on drawer + overlay. Prompt blocks compose until a name is set; on submit, name persists to localStorage and adapters with `setCurrentUser` swap identity at runtime. Playground demo at `?reporter`.
 - [x] Audit log hook: widget-side `onAudit` callback in `WidgetOpts` (fires on create/update/delete via the exported `wrapWithAudit` helper) + adapter-side `annotation_audit_log` table (worker writes on every mutation). Both layers independent; hosts pick either, both, or neither.
 - [x] Bug-button auto-wire: `init({ onToggle })` callback in `bug-mode.ts` closes the manual shadow-root-attach workaround. Playground uses it as the canonical pattern.
 
-Live deploy at `eats.travisfixes.com` is the only remaining v0.2 item (needs `wrangler login` + DNS access). All widget-side v0.2 work shipped.
+**v0.2 complete** (2026-05-16): widget + adapters + worker + share-link tokens + reporter prompt + audit log + bug-button auto-wire + live worker at `eats.travisfixes.com`.
 
 ## v0.3: Pivotal cutover
 
@@ -68,7 +68,7 @@ Live deploy at `eats.travisfixes.com` is the only remaining v0.2 item (needs `wr
 - [x] Real-DOM anchoring fully hardened against page mutations: triple-selector now full (CSS via `@medv/finder` + XPath + W3C text-quote + viewport box). Hosts that need to re-anchor a stale CSS selector can fall through to XPath or text-quote.
 - [x] W3C Web Annotation Data Model conversion finalized: `toW3C` + `fromW3C` helpers in `packages/widget/src/w3c.ts`. Emits spec-valid JSON-LD with `@context: http://www.w3.org/ns/anno.jsonld`, `type: Annotation`, `motivation` (`commenting`, or `[commenting, assessing]` for severity=high), `TextualBody` body, `SpecificResource` target. Selector union maps cleanly: `selector` -> `CssSelector`, `xpath` -> `XPathSelector`, `textQuote` -> `TextQuoteSelector`, `viewport` -> `FragmentSelector` with pixel `xywh=`, spatial pins -> `FragmentSelector` with `xywh=percent:` conforming to W3C Media Fragments. Non-spec domain fields (state, severity, resolvedPR, triage, etc.) hang off a `teb:ext` extension block so consumers that don't know us still parse the document as a stock W3C annotation, and round-trip is lossless for consumers that do. Spec-only annotations missing `teb:ext` import cleanly with state defaulted to `open`. 16 unit tests cover round-trip + selector mapping + spec field-name conformance.
 
-**v0.5 complete** — all 6 items shipped.
+**v0.5 complete** (2026-05-16): all 6 items shipped.
 
 ## v0.6: Integrations (formerly v0.5)
 
