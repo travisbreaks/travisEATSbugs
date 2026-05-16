@@ -3,11 +3,11 @@
 import {
   type Annotation,
   AnnotationPageMode,
-  type AuditEvent,
   AnnotationWidget,
+  type AuditEvent,
+  MemoryAdapter,
   destroy as destroyBugButton,
   init as initBugButton,
-  MemoryAdapter,
   wrapWithAudit,
 } from '@travisbreaks/travisEATSbugs'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -123,10 +123,9 @@ export default function Home() {
           </h1>
 
           <p className="lede">
-            The floating button in the bottom-right arms feedback mode. While it&apos;s
-            on, your cursor becomes a crosshair, hovered elements get a dashed
-            highlight, and clicking any element on this page drops a sticky-note
-            pin attached to that element.
+            The floating button in the bottom-right arms feedback mode. While it&apos;s on, your
+            cursor becomes a crosshair, hovered elements get a dashed highlight, and clicking any
+            element on this page drops a sticky-note pin attached to that element.
           </p>
 
           <p className="status">
@@ -140,16 +139,18 @@ export default function Home() {
         <section>
           <h2>What gets captured automatically</h2>
           <p>
-            Every pin carries a BugHerd-shaped <code>environment</code> payload:
-            the page URL, your operating system, your browser and version, the
-            CSS selector path of the clicked element, your screen resolution,
-            browser window size, and color depth. No client setup required.
+            Every pin carries a BugHerd-shaped <code>environment</code> payload: the page URL, your
+            operating system, your browser and version, the CSS selector path of the clicked
+            element, your screen resolution, browser window size, and color depth. No client setup
+            required.
           </p>
           <ul>
             <li>Page URL</li>
             <li>Operating system</li>
             <li>Browser + version</li>
-            <li>CSS selector (via <code>@medv/finder</code>)</li>
+            <li>
+              CSS selector (via <code>@medv/finder</code>)
+            </li>
             <li>XPath fallback</li>
             <li>Screen resolution + browser window size</li>
             <li>Color depth + device pixel ratio</li>
@@ -159,9 +160,7 @@ export default function Home() {
 
         <section>
           <h2>Try it</h2>
-          <p>
-            Click the bug button. Then click on any of these:
-          </p>
+          <p>Click the bug button. Then click on any of these:</p>
           <div className="targets">
             <button type="button" className="target-btn target-btn-primary">
               Primary action
@@ -170,8 +169,8 @@ export default function Home() {
               Secondary action
             </button>
             <p className="callout">
-              A paragraph with its own context. Click anywhere inside this text
-              and the selector captured will resolve to the parent paragraph.
+              A paragraph with its own context. Click anywhere inside this text and the selector
+              captured will resolve to the parent paragraph.
             </p>
             <div className="card-row">
               <div className="mini-card">
@@ -193,9 +192,8 @@ export default function Home() {
         <section>
           <h2>The task list</h2>
           <p>
-            Once you&apos;ve dropped a few pins, open the task list to see them
-            as a sorted feed (this is the surface BugHerd calls the Kanban
-            board).
+            Once you&apos;ve dropped a few pins, open the task list to see them as a sorted feed
+            (this is the surface BugHerd calls the Kanban board).
           </p>
           <button type="button" className="task-list-btn" onClick={openTaskList}>
             Open task list

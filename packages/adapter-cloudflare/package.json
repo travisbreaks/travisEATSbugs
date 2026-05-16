@@ -13,12 +13,7 @@
   "bugs": {
     "url": "https://github.com/travisbreaks/travisEATSbugs/issues"
   },
-  "keywords": [
-    "travisEATSbugs",
-    "cloudflare",
-    "d1",
-    "adapter"
-  ],
+  "keywords": ["travisEATSbugs", "cloudflare", "d1", "adapter"],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -31,12 +26,7 @@
     },
     "./migrations/001_annotations.sql": "./migrations/001_annotations.sql"
   },
-  "files": [
-    "dist",
-    "migrations",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "migrations", "README.md", "LICENSE"],
   "publishConfig": {
     "access": "public"
   },

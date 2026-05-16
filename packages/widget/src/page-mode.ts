@@ -82,7 +82,13 @@ type PinView = {
 type Mode =
   | { kind: 'idle' }
   | { kind: 'active' }
-  | { kind: 'composing-new'; anchor: AnnotationAnchor; vx: number; vy: number; target: Element | null }
+  | {
+      kind: 'composing-new'
+      anchor: AnnotationAnchor
+      vx: number
+      vy: number
+      target: Element | null
+    }
   | { kind: 'viewing'; pin: PinView }
 
 export class AnnotationPageMode {
@@ -580,8 +586,7 @@ export class AnnotationPageMode {
 
   private buildAdditionalInfo(anchor: AnnotationAnchor): HTMLElement {
     const env = captureEnvironment()
-    const selector =
-      anchor.mode === 'route' && anchor.selector ? anchor.selector : '(none)'
+    const selector = anchor.mode === 'route' && anchor.selector ? anchor.selector : '(none)'
     const rows: Array<[string, string]> = [
       ['Task logged at', env?.url ?? '(unknown)'],
       ['Operating system', env?.os ?? '(unknown)'],
@@ -596,8 +601,7 @@ export class AnnotationPageMode {
 
   private buildAdditionalInfoFromAnnotation(a: Annotation): HTMLElement {
     const env = a.environment
-    const selector =
-      a.anchor.mode === 'route' && a.anchor.selector ? a.anchor.selector : '(none)'
+    const selector = a.anchor.mode === 'route' && a.anchor.selector ? a.anchor.selector : '(none)'
     const rows: Array<[string, string]> = [
       ['Task logged at', env?.url ?? '(unknown)'],
       ['Operating system', env?.os ?? '(unknown)'],
