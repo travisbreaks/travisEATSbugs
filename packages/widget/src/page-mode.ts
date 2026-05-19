@@ -29,6 +29,7 @@
 import type { ApiAdapter, AuthAdapter } from './adapters'
 import { captureRouteAnchor } from './anchor-route'
 import { captureEnvironment } from './environment'
+import { onRouteChange } from './route-watcher'
 import type { Annotation, AnnotationAnchor, AuthorRef, CreateInput } from './types'
 
 const HOST_ID = 'travisEATSbugs-page-host'
@@ -106,6 +107,7 @@ export class AnnotationPageMode {
   private composeValue = ''
   private composeEmail = ''
   private mounted = false
+  private unsubscribeRoute: (() => void) | null = null
 
   constructor(opts: PageModeOpts) {
     this.opts = opts
@@ -125,6 +127,22 @@ export class AnnotationPageMode {
     root.setAttribute('aria-hidden', 'true')
     this.shadow.appendChild(root)
     document.body.appendChild(this.host)
+    // Re-fetch + re-filter pins when the host app navigates without a
+    // full reload (Next.js, React Router, Vue Router all do this).
+    // Fixes the 2026-05-18 regression where pins from page A stayed
+    // rendered after navigating to page B.
+    this.unsubscribeRoute = onRouteChange(() => {
+      // Composing-new state references the OLD page's DOM; cancel any
+      // open compose card so it can't write back to a stale anchor.
+      // A viewed pin from the old page is no longer meaningful either;
+      // drop back to plain active so the new page can be navigated.
+      if (this.mode.kind === 'composing-new') {
+        this.cancelCompose()
+      } else if (this.mode.kind === 'viewing') {
+        this.mode = { kind: 'active' }
+      }
+      void this.refresh()
+    })
     void this.refresh()
   }
 
@@ -164,6 +182,10 @@ export class AnnotationPageMode {
 
   destroy(): void {
     this.deactivate()
+    if (this.unsubscribeRoute) {
+      this.unsubscribeRoute()
+      this.unsubscribeRoute = null
+    }
     if (this.host?.parentNode) this.host.parentNode.removeChild(this.host)
     this.host = null
     this.shadow = null

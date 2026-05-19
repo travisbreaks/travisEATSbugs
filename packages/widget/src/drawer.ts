@@ -17,6 +17,7 @@
 
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { setReporterName } from './reporter'
+import { onRouteChange } from './route-watcher'
 import type { AnchorQuery, Annotation, AuthorRef } from './types'
 
 export type ReporterPromptConfig = {
@@ -69,6 +70,7 @@ export class AnnotationDrawer {
   private loading = false
   private awaitingReporter = false
   private reporterChecked = false
+  private unsubscribeRoute: (() => void) | null = null
 
   constructor(opts: DrawerOpts) {
     this.opts = opts
@@ -85,6 +87,17 @@ export class AnnotationDrawer {
     this.shadow.appendChild(this.buildStyles())
     this.shadow.appendChild(this.buildPanel())
     document.body.appendChild(this.host)
+    // Re-fetch on soft navigation. Default anchorQuery reads
+    // window.location.pathname at call time, so a refresh after the URL
+    // has changed pulls the new page's list. Fixes the 2026-05-18
+    // regression where notes from page A stayed visible on page B.
+    this.unsubscribeRoute = onRouteChange(() => {
+      // Cancel any open compose against the OLD page so the typed text
+      // doesn't get attached to the new route's anchor.
+      this.editingId = null
+      this.composeValue = ''
+      this.refresh()
+    })
     void this.checkReporter()
     this.refresh()
   }
@@ -113,6 +126,10 @@ export class AnnotationDrawer {
 
   unmount(): void {
     if (!this.isMounted) return
+    if (this.unsubscribeRoute) {
+      this.unsubscribeRoute()
+      this.unsubscribeRoute = null
+    }
     if (this.host?.parentNode) this.host.parentNode.removeChild(this.host)
     this.host = null
     this.shadow = null
