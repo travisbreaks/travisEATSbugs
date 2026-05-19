@@ -21,6 +21,7 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 | Version | Date | Headline |
 |---|---|---|
+| 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge |
 | 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) |
 | 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) |
 | 0.0.2-alpha.0 | 2026-05-18 | Route-refresh fix (B1) |
@@ -58,6 +59,14 @@ _None tracked at the moment. Add new entries here as they come in._
 **Consumer action:** Adapters that want to persist + round-trip `kind` need to surface the field. Adapters that ignore the field stay backwards compatible; UI shows radios but `kind` gets dropped on the wire. Pivotal adapter update lands in a separate PR (Pivotal repo).
 
 ## Fixed
+
+### B2 - Orphan pins stack on viewport edge when selectors break [0.0.5-alpha.0]
+
+**Reported:** 2026-05-19 by Cole via Travis (consumer: Pivotal).
+**Symptom:** On `/` (Pivotal dashboard) Cole saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
+**Root cause:** When a pin's stored CSS selector / xpath no longer resolves on the current DOM (page has been refactored since the pin was placed), `rebuildPinViews()` fell through to the orphan-tray fallback `vx: 16, vy: 16 + N*36`, which stacked every dead-anchor pin in a column. Coupled with the new 0.0.4 per-pin kind coloring, the result was a visually prominent column of "broken" markers on every page that had drifted.
+**Fix:** Skip rendering orphan pins entirely. `if (!pin.target) continue` before creating the DOM node; CSS now also has `display: none !important` on `.teb-pin-stale` as belt-and-suspenders for the in-flight orphan case (a pin whose target was alive at mount but disappeared during the session). The drawer list view still surfaces every note for the route, so the note data isn't lost — only the on-page marker disappears. Ships in 0.0.5-alpha.0.
+**Consumer action:** Pivotal re-vendors 0.0.5 and redeploys.
 
 ### B1 - Sticky-note pins not page-scoped across soft navigation [0.0.2-alpha.0]
 
