@@ -76,6 +76,11 @@ export class AnnotationDrawer {
   // after a successful submit so the reporter has to re-pick for the
   // next note (avoids accidental persisted classification carry-over).
   private composeKind: AnnotationKind | null = null
+  // List-view filter on persisted Annotation.kind. 'all' shows every item
+  // (including unclassified). Per-kind values filter to that kind only.
+  // 'unclassified' covers items that came in without a kind set, useful
+  // when an inbox grows beyond a couple dozen pre-classification notes.
+  private listFilter: AnnotationKind | 'all' | 'unclassified' = 'all'
 
   constructor(opts: DrawerOpts) {
     this.opts = opts
@@ -485,6 +490,53 @@ export class AnnotationDrawer {
       .badge.kind-feature { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
       .badge.kind-note { background: rgba(148, 163, 184, 0.14); color: var(--teb-muted); }
 
+      .list-filter {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--teb-border);
+        background: var(--teb-surface-1);
+      }
+      .list-filter[hidden] { display: none; }
+      .filter-pill {
+        appearance: none;
+        font: inherit;
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--teb-muted);
+        background: var(--teb-surface-2);
+        border: 1px solid var(--teb-border);
+        border-radius: 999px;
+        padding: 3px 10px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 160ms var(--teb-ease), color 160ms var(--teb-ease);
+      }
+      .filter-pill:hover { background: rgba(0, 0, 0, 0.04); color: var(--teb-fg); }
+      .filter-pill.is-active {
+        background: var(--teb-accent);
+        color: #fff;
+        border-color: transparent;
+      }
+      .filter-pill.is-active:hover { background: var(--teb-accent); }
+      .filter-pill:focus-visible {
+        outline: 2px solid var(--teb-fg);
+        outline-offset: 2px;
+      }
+      .filter-count {
+        font-variant-numeric: tabular-nums;
+        font-size: 10px;
+        background: rgba(0, 0, 0, 0.06);
+        padding: 1px 6px;
+        border-radius: 999px;
+      }
+      .filter-pill.is-active .filter-count {
+        background: rgba(255, 255, 255, 0.22);
+      }
+
       .empty {
         padding: 24px 16px;
         text-align: center;
@@ -552,6 +604,13 @@ export class AnnotationDrawer {
           <span class="hint">Cmd/Ctrl + Enter to send</span>
           <button class="btn primary submit-btn" type="button">Send</button>
         </div>
+      </div>
+      <div class="list-filter" role="tablist" aria-label="Filter by classification">
+        <button type="button" class="filter-pill" role="tab" data-filter="all" aria-selected="true">All <span class="filter-count" data-count-for="all">0</span></button>
+        <button type="button" class="filter-pill" role="tab" data-filter="bug" aria-selected="false">Bug <span class="filter-count" data-count-for="bug">0</span></button>
+        <button type="button" class="filter-pill" role="tab" data-filter="feature" aria-selected="false">Feature <span class="filter-count" data-count-for="feature">0</span></button>
+        <button type="button" class="filter-pill" role="tab" data-filter="note" aria-selected="false">Note <span class="filter-count" data-count-for="note">0</span></button>
+        <button type="button" class="filter-pill" role="tab" data-filter="unclassified" aria-selected="false">Unclassified <span class="filter-count" data-count-for="unclassified">0</span></button>
       </div>
       <ul class="list" aria-live="polite"></ul>
       <div class="footer"></div>
@@ -621,6 +680,26 @@ export class AnnotationDrawer {
         if (e.key === 'Enter') {
           e.preventDefault()
           submit()
+        }
+      })
+    }
+
+    // List-filter pills. Click to scope the rendered list to a single
+    // kind, or 'unclassified' for notes without one. 'all' is the
+    // default and matches every item.
+    const filterPills = panel.querySelectorAll<HTMLButtonElement>('.list-filter .filter-pill')
+    for (const pill of Array.from(filterPills)) {
+      pill.addEventListener('click', () => {
+        const next = pill.dataset.filter
+        if (
+          next === 'all' ||
+          next === 'bug' ||
+          next === 'feature' ||
+          next === 'note' ||
+          next === 'unclassified'
+        ) {
+          this.listFilter = next
+          this.render()
         }
       })
     }
@@ -772,15 +851,55 @@ export class AnnotationDrawer {
       list.appendChild(li)
       return
     }
-    if (this.items.length === 0) {
+
+    // Recompute per-filter counts off the unfiltered items + reflect
+    // the active filter on the pill row. Hide the filter row entirely
+    // when there's nothing to filter (zero items).
+    this.updateFilterRow(panel)
+
+    const visible = this.applyListFilter(this.items)
+    if (visible.length === 0) {
       const li = document.createElement('li')
       li.className = 'empty'
-      li.textContent = this.opts.theme?.emptyStateCopy ?? 'Nothing pinned here yet.'
+      li.textContent =
+        this.items.length === 0
+          ? (this.opts.theme?.emptyStateCopy ?? 'Nothing pinned here yet.')
+          : 'No notes match this filter.'
       list.appendChild(li)
       return
     }
-    for (const a of this.items) {
+    for (const a of visible) {
       list.appendChild(this.renderItem(a))
+    }
+  }
+
+  private applyListFilter(items: Annotation[]): Annotation[] {
+    if (this.listFilter === 'all') return items
+    if (this.listFilter === 'unclassified') return items.filter((a) => !a.kind)
+    return items.filter((a) => a.kind === this.listFilter)
+  }
+
+  private updateFilterRow(panel: HTMLElement): void {
+    const row = panel.querySelector<HTMLDivElement>('.list-filter')
+    if (!row) return
+    row.hidden = this.items.length === 0
+    const counts = {
+      all: this.items.length,
+      bug: this.items.filter((a) => a.kind === 'bug').length,
+      feature: this.items.filter((a) => a.kind === 'feature').length,
+      note: this.items.filter((a) => a.kind === 'note').length,
+      unclassified: this.items.filter((a) => !a.kind).length,
+    }
+    for (const [key, count] of Object.entries(counts)) {
+      const node = row.querySelector<HTMLSpanElement>(`[data-count-for="${key}"]`)
+      if (node) node.textContent = String(count)
+    }
+    const pills = row.querySelectorAll<HTMLButtonElement>('.filter-pill')
+    for (const pill of Array.from(pills)) {
+      const f = pill.dataset.filter
+      const active = f === this.listFilter
+      pill.setAttribute('aria-selected', String(active))
+      pill.classList.toggle('is-active', active)
     }
   }
 
