@@ -48,6 +48,29 @@ export type DrawerOpts = {
    */
   open?: boolean
   /**
+   * Visual layout for the drawer:
+   *   - 'floating' (default): a small bottom-right panel ~420x70vh with
+   *     pop-up animation. Good for unobtrusive feedback widgets on
+   *     marketing sites.
+   *   - 'right-rail': a full-height side drawer pinned to the right
+   *     edge of the viewport, slide-in animation. Matches the shape of
+   *     Pivotal's AI chat sidebar and the legacy hand-rolled
+   *     PageNotesDrawer Cole was used to before the EATS cutover.
+   * `position` is ignored when layout is 'right-rail'.
+   */
+  layout?: 'floating' | 'right-rail'
+  /**
+   * Width of the right-rail in pixels. Defaults to 420 to match Pivotal's
+   * AI chat sidebar + the legacy PageNotesDrawer. Ignored when layout
+   * is 'floating'.
+   */
+  railWidth?: number
+  /**
+   * If true (right-rail only), render a translucent backdrop behind the
+   * drawer so clicks outside it can close the rail. Default false.
+   */
+  backdrop?: boolean
+  /**
    * Reporter mode: when `auth.getCurrentUser()` returns null, prompt for
    * a display name before allowing compose. Name persists to localStorage
    * via the namespace below.
@@ -95,7 +118,12 @@ export class AnnotationDrawer {
     this.host.id = HOST_ID
     this.shadow = this.host.attachShadow({ mode: 'open' })
     this.shadow.appendChild(this.buildStyles())
-    this.shadow.appendChild(this.buildPanel())
+    const panel = this.buildPanel()
+    // Right-rail backdrop, if buildPanel created one, sits behind the
+    // panel in DOM order so the panel naturally paints on top.
+    const backdrop = (this as unknown as { _backdrop?: HTMLDivElement })._backdrop
+    if (backdrop) this.shadow.appendChild(backdrop)
+    this.shadow.appendChild(panel)
     document.body.appendChild(this.host)
     // Re-fetch on soft navigation. Default anchorQuery reads
     // window.location.pathname at call time, so a refresh after the URL
@@ -192,30 +220,64 @@ export class AnnotationDrawer {
   }
 
   private buildStyles(): HTMLStyleElement {
+    const layout = this.opts.layout ?? 'floating'
     const bottom = this.opts.position?.bottom ?? 88
     const right = this.opts.position?.right ?? 20
+    const railWidth = this.opts.railWidth ?? 420
     const style = document.createElement('style')
-    style.textContent = `
-      :host {
-        --teb-surface-1: #ffffff;
-        --teb-surface-2: #f6f6f7;
-        --teb-fg: #0c0908;
-        --teb-muted: #6c6a68;
-        --teb-border: rgba(0, 0, 0, 0.08);
-        --teb-accent: #ff2a6d;
-        --teb-success: #2a9d57;
-        --teb-danger: #c43932;
-        --teb-z: 2147483646;
-        --teb-radius: 14px;
-        --teb-ease: cubic-bezier(0.45, 0, 0.55, 1);
-        --teb-ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
-
-        all: initial;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-        color: var(--teb-fg);
+    // Layout-specific panel rules. 'floating' keeps the pre-0.0.7 shape
+    // (bottom-right pop-up). 'right-rail' matches a full-height
+    // sidebar pinned to the right edge of the viewport, slide-in
+    // animation, for consumers that want a substantial notes surface.
+    const panelLayoutCss =
+      layout === 'right-rail'
+        ? `
+      .panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(${railWidth}px, 100vw);
+        max-height: 100vh;
+        background: var(--teb-surface-1);
+        border-left: 1px solid var(--teb-border);
+        box-shadow: -16px 0 36px rgba(0, 0, 0, 0.18);
+        z-index: var(--teb-z);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: translateX(100%);
+        opacity: 1;
+        pointer-events: none;
+        transition:
+          transform 240ms var(--teb-ease-entrance),
+          opacity 200ms var(--teb-ease-entrance);
       }
 
+      :host([data-open='true']) .panel,
+      .panel[data-open='true'] {
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(1px);
+        z-index: calc(var(--teb-z) - 1);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms var(--teb-ease-entrance);
+      }
+      .backdrop[hidden] { display: none; }
+      :host([data-open='true']) .backdrop[data-active='true'],
+      .backdrop[data-open='true'][data-active='true'] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      `
+        : `
       .panel {
         position: fixed;
         bottom: ${bottom}px;
@@ -245,6 +307,28 @@ export class AnnotationDrawer {
         opacity: 1;
         pointer-events: auto;
       }
+      `
+    style.textContent = `
+      :host {
+        --teb-surface-1: #ffffff;
+        --teb-surface-2: #f6f6f7;
+        --teb-fg: #0c0908;
+        --teb-muted: #6c6a68;
+        --teb-border: rgba(0, 0, 0, 0.08);
+        --teb-accent: #ff2a6d;
+        --teb-success: #2a9d57;
+        --teb-danger: #c43932;
+        --teb-z: 2147483646;
+        --teb-radius: 14px;
+        --teb-ease: cubic-bezier(0.45, 0, 0.55, 1);
+        --teb-ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+
+        all: initial;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        color: var(--teb-fg);
+      }
+      ${panelLayoutCss}
 
       .header {
         display: flex;
@@ -561,6 +645,21 @@ export class AnnotationDrawer {
   }
 
   private buildPanel(): HTMLDivElement {
+    const layout = this.opts.layout ?? 'floating'
+    // Optional translucent backdrop for the right-rail layout. Clicking
+    // the backdrop closes the rail (matches Pivotal's AI chat sidebar
+    // dismiss UX). 'floating' layout never gets a backdrop.
+    if (layout === 'right-rail') {
+      const backdrop = document.createElement('div')
+      backdrop.className = 'backdrop'
+      backdrop.dataset.open = String(this.isOpen)
+      backdrop.dataset.active = String(this.opts.backdrop === true)
+      backdrop.hidden = !this.opts.backdrop
+      backdrop.addEventListener('click', () => this.close())
+      // Append to the shadow root in mount() via shadow.appendChild
+      // when present; doing it here keeps buildPanel a pure factory.
+      ;(this as unknown as { _backdrop?: HTMLDivElement })._backdrop = backdrop
+    }
     const panel = document.createElement('div')
     panel.className = 'panel'
     panel.setAttribute('role', 'dialog')
@@ -827,6 +926,9 @@ export class AnnotationDrawer {
     if (!panel) return
     panel.dataset.open = String(this.isOpen)
     panel.dataset.reporterAwait = String(this.awaitingReporter)
+    // Right-rail backdrop (when enabled) tracks panel open state.
+    const backdrop = this.shadow.querySelector<HTMLDivElement>('.backdrop')
+    if (backdrop) backdrop.dataset.open = String(this.isOpen)
 
     // Show/hide reporter prompt vs compose block based on reporterAwait.
     const reporterBlock = panel.querySelector<HTMLDivElement>('.reporter-prompt')

@@ -21,6 +21,7 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 | Version | Date | Headline |
 |---|---|---|
+| 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Pivotal's AI chat sidebar shape and the legacy PageNotesDrawer |
 | 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors |
 | 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge |
 | 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) |
@@ -33,6 +34,18 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 _None tracked at the moment. Add new entries here as they come in._
 
 ## Features shipped (non-bug additions)
+
+### F3 - Right-rail drawer layout option [0.0.7-alpha.0]
+
+**Asked:** 2026-05-19 by Travis (consumer: Pivotal).
+**Why:** The pre-EATS hand-rolled `<PageNotesDrawer />` in Pivotal was a full-height right-rail drawer (`fixed top-0 right-0 h-full w-[420px]`), visually paired with the AI chat sidebar. The EATS widget defaulted to a small bottom-right floating panel which felt like a different (and lesser) affordance to Cole. Consumers should be able to pick which layout fits their host UX.
+**Shape:**
+- New `DrawerOpts.layout: 'floating' | 'right-rail'` (default `'floating'`, backwards compatible for Lion's Share + other consumers).
+- New `DrawerOpts.railWidth` (default 420) to match Pivotal's AI sidebar width.
+- New `DrawerOpts.backdrop` (boolean, default false): when true + layout='right-rail', renders a translucent backdrop behind the rail; clicking it closes the drawer (Pivotal AI sidebar dismiss pattern).
+- Right-rail panel: `position: fixed; top: 0; right: 0; bottom: 0; width: railWidth; max-height: 100vh`; slide-in from right (`translateX(100%) -> translateX(0)`) animation; left border + leftward drop shadow.
+- Floating layout unchanged.
+**Consumer action:** pass `layout: 'right-rail'` (plus optional `backdrop: true`) to `new AnnotationWidget({ ... })` or `new AnnotationDrawer({ ... })`.
 
 ### F2 - Drawer kind filter + per-pin kind coloring [0.0.4-alpha.0]
 
