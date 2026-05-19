@@ -511,9 +511,21 @@ export class AnnotationPageMode {
       el.type = 'button'
       el.setAttribute(ATTR_PIN, pin.id)
       el.className = 'teb-pin'
+      // Per-pin kind badge: color the pin background by kind so the
+      // reporter can scan the page and see classification at a glance.
+      // Unclassified pins keep the default accent (pink). Stale pins
+      // still win over kind class (gray means "selector broken", which
+      // is more urgent than "what kind").
+      const k = pin.annotation.kind
+      if (k && (k === 'bug' || k === 'feature' || k === 'note')) {
+        el.classList.add(`teb-pin-${k}`)
+        el.dataset.kind = k
+      }
       el.style.transform = `translate(${pin.vx}px, ${pin.vy}px)`
-      el.textContent = `${indexOf(this.items, pin.annotation) + 1}`
-      el.setAttribute('aria-label', `Open feedback ${indexOf(this.items, pin.annotation) + 1}`)
+      const labelIdx = indexOf(this.items, pin.annotation) + 1
+      el.textContent = `${labelIdx}`
+      const kindSuffix = k ? ` (${k})` : ''
+      el.setAttribute('aria-label', `Open feedback ${labelIdx}${kindSuffix}`)
       el.addEventListener('click', (ev) => {
         ev.stopPropagation()
         this.mode = { kind: 'viewing', pin }
@@ -896,6 +908,28 @@ const STYLE_TEXT = `
   box-shadow:
     0 6px 16px rgba(0, 0, 0, 0.28),
     0 0 0 8px rgba(255, 42, 109, 0.25);
+}
+
+/* Per-kind pin coloring. Order matters: stale class must come AFTER
+ * these so a stale pin (broken selector) shows gray regardless of
+ * its kind classification. */
+.teb-pin-bug { background: #c43932; }
+.teb-pin-bug:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.28),
+    0 0 0 8px rgba(196, 57, 50, 0.25);
+}
+.teb-pin-feature { background: #3b82f6; }
+.teb-pin-feature:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.28),
+    0 0 0 8px rgba(59, 130, 246, 0.25);
+}
+.teb-pin-note { background: #64748b; }
+.teb-pin-note:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.28),
+    0 0 0 8px rgba(100, 116, 139, 0.25);
 }
 
 .teb-pin-stale {

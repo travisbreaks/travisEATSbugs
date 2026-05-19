@@ -66,6 +66,7 @@ export class MemoryAdapter implements ApiAdapter {
       ...(input.severity ? { severity: input.severity } : {}),
       ...(input.screenshot ? { screenshot: input.screenshot } : {}),
       ...(input.environment ? { environment: input.environment } : {}),
+      ...(input.kind ? { kind: input.kind } : {}),
     }
     this.store.set(id, annotation)
     return annotation
@@ -147,30 +148,34 @@ function validatePatch(patch: UpdatePatch): void {
   const hasOverlap = 'relatedIds' in patch || 'dupOf' in patch || 'resolutionNote' in patch
   const hasTriage = 'triage' in patch
   const hasAnchor = 'anchor' in patch
+  const hasKind = 'kind' in patch
   const isReopen = hasResolvedPR && resolvedPR === null
   const isResolve = hasResolvedPR && typeof resolvedPR === 'number'
 
-  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage || hasAnchor)) {
+  if (hasBody && (hasResolvedPR || hasOverlap || hasTriage || hasAnchor || hasKind)) {
     throw new Error('MemoryAdapter: body edit cannot be combined with resolution or overlap fields')
   }
   if (isReopen && hasOverlap) {
     // Reopen clears resolution columns; overlap fields are not allowed in a reopen.
     throw new Error('MemoryAdapter: reopen patch cannot carry overlap fields')
   }
-  if (hasTriage && (hasResolvedPR || hasOverlap || hasAnchor)) {
+  if (hasTriage && (hasResolvedPR || hasOverlap || hasAnchor || hasKind)) {
     throw new Error(
       'MemoryAdapter: triage patch cannot be combined with resolution or overlap fields',
     )
   }
-  if (hasAnchor && (hasResolvedPR || hasOverlap)) {
+  if (hasAnchor && (hasResolvedPR || hasOverlap || hasKind)) {
     throw new Error(
       'MemoryAdapter: anchor patch cannot be combined with resolution or overlap fields',
     )
   }
-  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage && !hasAnchor) {
+  if (hasKind && (hasResolvedPR || hasOverlap)) {
+    throw new Error('MemoryAdapter: kind patch cannot be combined with resolution or overlap fields')
+  }
+  if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage && !hasAnchor && !hasKind) {
     throw new Error('MemoryAdapter: empty patch')
   }
-  // resolve OR overlap-only OR triage OR anchor are all valid; nothing more to check.
+  // resolve OR overlap-only OR triage OR anchor OR kind are all valid; nothing more to check.
   void isResolve
 }
 
@@ -228,6 +233,20 @@ function applyPatch(
   if ('anchor' in patch) {
     const anchorPatch = patch as Extract<UpdatePatch, { anchor: unknown }>
     return { ...existing, anchor: anchorPatch.anchor as Annotation['anchor'], modifiedAt: ts }
+  }
+  // Kind classification (null clears it)
+  if ('kind' in patch) {
+    const kindPatch = patch as Extract<UpdatePatch, { kind: unknown }>
+    if (kindPatch.kind === null) {
+      const { kind: _kind, ...rest } = existing
+      void _kind
+      return { ...rest, modifiedAt: ts }
+    }
+    return {
+      ...existing,
+      kind: kindPatch.kind as Annotation['kind'],
+      modifiedAt: ts,
+    }
   }
   // Overlap-only
   const overlap = patch as { relatedIds?: string[]; dupOf?: string }

@@ -6,6 +6,7 @@ import { captureSpatialAnchor } from './anchor-spatial'
 import { defaultAuth } from './auth-stub'
 import { AnnotationDrawer } from './drawer'
 import { AnnotationOverlay } from './overlay'
+import { AnnotationPageMode } from './page-mode'
 import { clearReporterName, localStorageReporter, setReporterName } from './reporter'
 import { defaultScreenshotCapture, wrapWithScreenshot } from './screenshot'
 import type { Annotation, AnnotationAnchor, ScreenshotCaptureFn } from './types'
@@ -741,6 +742,121 @@ describe('AnnotationWidget (drawer mode)', () => {
       expect(list?.querySelectorAll('.item').length).toBe(1)
     })
     drawer.unmount()
+  })
+
+  it('drawer kind filter scopes the rendered list + updates counts', async () => {
+    const api = new MemoryAdapter()
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'b1', kind: 'bug' })
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'f1', kind: 'feature' })
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'n1', kind: 'note' })
+    await api.create({ anchor: { mode: 'route', path: '/' }, body: 'plain' })
+    const drawer = new AnnotationDrawer({
+      api,
+      anchorQuery: () => ({ mode: 'route', path: '/' }),
+      open: true,
+    })
+    drawer.mount()
+    const shadow = () => document.getElementById('travisEATSbugs-drawer-host')?.shadowRoot
+    await vi.waitFor(() => {
+      const items = shadow()?.querySelectorAll('.list .item')
+      expect(items?.length).toBe(4)
+    })
+    const counts: Record<string, string | null | undefined> = {}
+    for (const k of ['all', 'bug', 'feature', 'note', 'unclassified']) {
+      counts[k] = shadow()?.querySelector(`[data-count-for="${k}"]`)?.textContent
+    }
+    expect(counts.all).toBe('4')
+    expect(counts.bug).toBe('1')
+    expect(counts.feature).toBe('1')
+    expect(counts.note).toBe('1')
+    expect(counts.unclassified).toBe('1')
+
+    // Click the Bug filter; list shrinks to one item.
+    shadow()?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="bug"]')?.click()
+    await vi.waitFor(() => {
+      const items = shadow()?.querySelectorAll('.list .item')
+      expect(items?.length).toBe(1)
+    })
+    expect(
+      shadow()?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="bug"]')?.classList
+        .contains('is-active'),
+    ).toBe(true)
+
+    // Unclassified filter shows only the no-kind note.
+    shadow()
+      ?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="unclassified"]')
+      ?.click()
+    await vi.waitFor(() => {
+      const items = shadow()?.querySelectorAll('.list .item')
+      expect(items?.length).toBe(1)
+      expect(shadow()?.querySelector('.list .item .item-body')?.textContent).toBe('plain')
+    })
+
+    drawer.unmount()
+  })
+})
+
+describe('AnnotationPageMode kind badges', () => {
+  it('colors pin markers by kind, leaves unclassified pins on the default', async () => {
+    const target1 = document.createElement('button')
+    target1.id = 'kind-target-bug'
+    target1.textContent = 'bug target'
+    const target2 = document.createElement('button')
+    target2.id = 'kind-target-plain'
+    target2.textContent = 'plain target'
+    document.body.appendChild(target1)
+    document.body.appendChild(target2)
+    target1.getBoundingClientRect = () =>
+      ({ left: 10, top: 10, right: 30, bottom: 30, width: 20, height: 20, x: 10, y: 10 }) as DOMRect
+    target2.getBoundingClientRect = () =>
+      ({
+        left: 60,
+        top: 60,
+        right: 80,
+        bottom: 80,
+        width: 20,
+        height: 20,
+        x: 60,
+        y: 60,
+      }) as DOMRect
+
+    const api = new MemoryAdapter()
+    await api.create({
+      anchor: { mode: 'route', path: '/kind-pins', selector: '#kind-target-bug' },
+      body: 'bug pin',
+      kind: 'bug',
+    })
+    await api.create({
+      anchor: { mode: 'route', path: '/kind-pins', selector: '#kind-target-plain' },
+      body: 'plain pin',
+    })
+
+    const page = new AnnotationPageMode({
+      api,
+      routeFilter: () => '/kind-pins',
+    })
+    page.mount()
+    page.activate()
+
+    await vi.waitFor(() => {
+      const host = document.getElementById('travisEATSbugs-page-host')
+      const pins = host?.shadowRoot?.querySelectorAll('[data-teb-pin]')
+      expect(pins?.length).toBe(2)
+    })
+    const host = document.getElementById('travisEATSbugs-page-host')
+    const pins = Array.from(
+      host?.shadowRoot?.querySelectorAll<HTMLButtonElement>('[data-teb-pin]') ?? [],
+    )
+    const bugPin = pins.find((p) => p.dataset.kind === 'bug')
+    const plainPin = pins.find((p) => !p.dataset.kind)
+    expect(bugPin?.classList.contains('teb-pin-bug')).toBe(true)
+    expect(plainPin?.classList.contains('teb-pin-bug')).toBe(false)
+    expect(plainPin?.classList.contains('teb-pin-feature')).toBe(false)
+    expect(plainPin?.classList.contains('teb-pin-note')).toBe(false)
+
+    page.destroy()
+    document.body.removeChild(target1)
+    document.body.removeChild(target2)
   })
 })
 
