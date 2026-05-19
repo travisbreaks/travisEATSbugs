@@ -170,7 +170,9 @@ function validatePatch(patch: UpdatePatch): void {
     )
   }
   if (hasKind && (hasResolvedPR || hasOverlap)) {
-    throw new Error('MemoryAdapter: kind patch cannot be combined with resolution or overlap fields')
+    throw new Error(
+      'MemoryAdapter: kind patch cannot be combined with resolution or overlap fields',
+    )
   }
   if (!hasBody && !hasResolvedPR && !hasOverlap && !hasTriage && !hasAnchor && !hasKind) {
     throw new Error('MemoryAdapter: empty patch')

@@ -778,14 +778,13 @@ describe('AnnotationWidget (drawer mode)', () => {
       expect(items?.length).toBe(1)
     })
     expect(
-      shadow()?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="bug"]')?.classList
-        .contains('is-active'),
+      shadow()
+        ?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="bug"]')
+        ?.classList.contains('is-active'),
     ).toBe(true)
 
     // Unclassified filter shows only the no-kind note.
-    shadow()
-      ?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="unclassified"]')
-      ?.click()
+    shadow()?.querySelector<HTMLButtonElement>('.filter-pill[data-filter="unclassified"]')?.click()
     await vi.waitFor(() => {
       const items = shadow()?.querySelectorAll('.list .item')
       expect(items?.length).toBe(1)
