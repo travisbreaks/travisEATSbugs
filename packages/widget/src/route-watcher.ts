@@ -59,19 +59,11 @@ function patchOnce(): void {
 
   const origPush = history.pushState.bind(history)
   const origReplace = history.replaceState.bind(history)
-  history.pushState = (
-    data: unknown,
-    unused: string,
-    url?: string | URL | null,
-  ): void => {
+  history.pushState = (data: unknown, unused: string, url?: string | URL | null): void => {
     origPush(data, unused, url)
     notify()
   }
-  history.replaceState = (
-    data: unknown,
-    unused: string,
-    url?: string | URL | null,
-  ): void => {
+  history.replaceState = (data: unknown, unused: string, url?: string | URL | null): void => {
     origReplace(data, unused, url)
     notify()
   }
