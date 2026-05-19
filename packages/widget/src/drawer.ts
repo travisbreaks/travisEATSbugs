@@ -18,7 +18,7 @@
 import type { ApiAdapter, AuthAdapter, ThemeAdapter } from './adapters'
 import { setReporterName } from './reporter'
 import { onRouteChange } from './route-watcher'
-import type { AnchorQuery, Annotation, AuthorRef } from './types'
+import type { AnchorQuery, Annotation, AnnotationKind, AuthorRef } from './types'
 
 export type ReporterPromptConfig = {
   /** localStorage namespace for the stored reporter identity. */
@@ -71,6 +71,11 @@ export class AnnotationDrawer {
   private awaitingReporter = false
   private reporterChecked = false
   private unsubscribeRoute: (() => void) | null = null
+  // Reporter-supplied single classification for the next compose.
+  // Optional; null = no classification (brain-dump path). Reset to null
+  // after a successful submit so the reporter has to re-pick for the
+  // next note (avoids accidental persisted classification carry-over).
+  private composeKind: AnnotationKind | null = null
 
   constructor(opts: DrawerOpts) {
     this.opts = opts
@@ -422,6 +427,64 @@ export class AnnotationDrawer {
       .badge.resolved { background: rgba(42, 157, 87, 0.12); color: var(--teb-success); }
       .badge.dup { background: rgba(196, 57, 50, 0.10); color: var(--teb-danger); }
 
+      .kinds-row {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+      }
+      .kind-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px 3px 7px;
+        border-radius: 999px;
+        background: var(--teb-surface-2);
+        border: 1px solid var(--teb-border);
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--teb-muted);
+        cursor: pointer;
+        user-select: none;
+        transition: background 160ms var(--teb-ease), color 160ms var(--teb-ease);
+      }
+      .kind-pill input { margin: 0; cursor: pointer; }
+      .kind-pill:has(input:checked) {
+        background: var(--teb-accent);
+        color: #fff;
+        border-color: transparent;
+      }
+      .kind-pill input:focus-visible {
+        outline: 2px solid var(--teb-fg);
+        outline-offset: 2px;
+      }
+      .kind-clear {
+        appearance: none;
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--teb-muted);
+        font-size: 11px;
+        line-height: 1.4;
+        padding: 3px 7px;
+        border-radius: 999px;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .kind-clear:hover { color: var(--teb-fg); }
+      .kind-clear:focus-visible {
+        outline: 2px solid var(--teb-fg);
+        outline-offset: 2px;
+      }
+
+      .kind-badges {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .badge.kind-bug { background: rgba(196, 57, 50, 0.12); color: var(--teb-danger); }
+      .badge.kind-feature { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+      .badge.kind-note { background: rgba(148, 163, 184, 0.14); color: var(--teb-muted); }
+
       .empty {
         padding: 24px 16px;
         text-align: center;
@@ -479,6 +542,12 @@ export class AnnotationDrawer {
           placeholder="Leave a note about this page..."
           rows="3"
         ></textarea>
+        <div class="kinds-row" role="radiogroup" aria-label="Optional classification">
+          <label class="kind-pill"><input type="radio" name="teb-kind" data-kind="bug" /><span>Bug</span></label>
+          <label class="kind-pill"><input type="radio" name="teb-kind" data-kind="feature" /><span>Feature</span></label>
+          <label class="kind-pill"><input type="radio" name="teb-kind" data-kind="note" /><span>Note</span></label>
+          <button type="button" class="kind-clear" hidden>Clear</button>
+        </div>
         <div class="compose-row">
           <span class="hint">Cmd/Ctrl + Enter to send</span>
           <button class="btn primary submit-btn" type="button">Send</button>
@@ -516,6 +585,32 @@ export class AnnotationDrawer {
     submitBtn.addEventListener('click', () => {
       void this.submitCompose(textarea)
     })
+
+    // Wire the optional kind radios. Each input has data-kind so the
+    // change handler can map the selection to the canonical AnnotationKind.
+    // A separate Clear button resets back to null (the brain-dump path).
+    const kindInputs = panel.querySelectorAll<HTMLInputElement>(
+      '.kinds-row input[type="radio"][data-kind]',
+    )
+    const clearBtn = panel.querySelector<HTMLButtonElement>('.kind-clear')
+    for (const input of Array.from(kindInputs)) {
+      input.addEventListener('change', (e) => {
+        const target = e.currentTarget as HTMLInputElement
+        const kind = target.dataset.kind as AnnotationKind | undefined
+        if (!kind || (kind !== 'bug' && kind !== 'feature' && kind !== 'note')) return
+        if (target.checked) {
+          this.composeKind = kind
+          if (clearBtn) clearBtn.hidden = false
+        }
+      })
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        this.composeKind = null
+        for (const input of Array.from(kindInputs)) input.checked = false
+        clearBtn.hidden = true
+      })
+    }
 
     if (reporterInput && reporterSubmitBtn) {
       const submit = () => {
@@ -582,9 +677,15 @@ export class AnnotationDrawer {
     const body = this.composeValue.trim()
     if (!body) return
     const previous = this.composeValue
+    const previousKind = this.composeKind
     // Optimistic clear: don't wait for await.
     this.composeValue = ''
     textarea.value = ''
+    // Reset the classification so the next note starts fresh. Reporters
+    // who want consecutive notes of the same kind re-pick; the no-carry
+    // default avoids accidental classification leakage across notes.
+    this.composeKind = null
+    this.uncheckKindInputs()
     this.updateComposeState()
     try {
       const query = this.resolveAnchorQuery()
@@ -598,16 +699,47 @@ export class AnnotationDrawer {
               x: 50,
               y: 50,
             }
-      await this.opts.api.create({ anchor, body })
+      await this.opts.api.create({
+        anchor,
+        body,
+        ...(previousKind ? { kind: previousKind } : {}),
+      })
       await this.load()
       // Refocus the textarea so consecutive notes work.
       setTimeout(() => textarea.focus(), 0)
     } catch {
-      // Restore draft.
+      // Restore draft + classification so the reporter doesn't lose them.
       this.composeValue = previous
       textarea.value = previous
+      this.composeKind = previousKind
+      this.recheckKindInput(previousKind)
       this.updateComposeState()
     }
+  }
+
+  private uncheckKindInputs(): void {
+    if (!this.shadow) return
+    const inputs = this.shadow.querySelectorAll<HTMLInputElement>(
+      '.kinds-row input[type="radio"][data-kind]',
+    )
+    for (const input of Array.from(inputs)) {
+      input.checked = false
+    }
+    const clearBtn = this.shadow.querySelector<HTMLButtonElement>('.kind-clear')
+    if (clearBtn) clearBtn.hidden = true
+  }
+
+  private recheckKindInput(kind: AnnotationKind | null): void {
+    if (!this.shadow) return
+    const inputs = this.shadow.querySelectorAll<HTMLInputElement>(
+      '.kinds-row input[type="radio"][data-kind]',
+    )
+    for (const input of Array.from(inputs)) {
+      const k = input.dataset.kind as AnnotationKind | undefined
+      input.checked = !!k && k === kind
+    }
+    const clearBtn = this.shadow.querySelector<HTMLButtonElement>('.kind-clear')
+    if (clearBtn) clearBtn.hidden = !kind
   }
 
   private render(): void {
@@ -684,6 +816,18 @@ export class AnnotationDrawer {
       body.className = 'item-body'
       body.textContent = a.body
       li.appendChild(body)
+    }
+
+    // Render the kind badge if the annotation carries one. Pre-kind
+    // notes and notes from adapters that drop the field skip this.
+    if (a.kind && (a.kind === 'bug' || a.kind === 'feature' || a.kind === 'note')) {
+      const row = document.createElement('div')
+      row.className = 'kind-badges'
+      const badge = document.createElement('span')
+      badge.className = `badge kind-${a.kind}`
+      badge.textContent = a.kind.charAt(0).toUpperCase() + a.kind.slice(1)
+      row.appendChild(badge)
+      li.appendChild(row)
     }
 
     if (a.state === 'resolved') {

@@ -21,12 +21,29 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 | Version | Date | Headline |
 |---|---|---|
+| 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) |
 | 0.0.2-alpha.0 | 2026-05-18 | Route-refresh fix (B1) |
 | 0.0.1-alpha.0 | 2026-05-14 | Initial extraction from Pivotal |
 
 ## Open
 
 _None tracked at the moment. Add new entries here as they come in._
+
+## Features shipped (non-bug additions)
+
+### F1 — Optional kind radios + Clear in compose UI [0.0.3-alpha.0]
+
+**Asked:** 2026-05-18 by Cole. Gemini-notes phrasing from the call: "radio button or toggle for bug, feature request, or note categorization." Travis iMessage clarification: "tick boxes in the note itself (optional)." Three classifications: bug / feature / note. Single-select (radio) with an explicit Clear button so the no-classification path still works.
+**Why:** Cole's brain-dump flow benefits from a quick way to tag what kind of thing he's reporting. Travis: "another piece of metadata that you could filter by in the list." Single-select matches Cole's "categorization" intent (a note IS a bug, OR a feature, OR a generic note, not both) while Clear preserves the optional path.
+**Shape:**
+- New `AnnotationKind = 'bug' | 'feature' | 'note'` type.
+- `Annotation.kind?: AnnotationKind` optional, single value.
+- `CreateInput.kind?` and a new `UpdatePatch` variant `{ kind: AnnotationKind | null }`.
+- Drawer compose: row of 3 radio pills + a small Clear button above the Send row. State resets on submit; restored on submit-error so the reporter doesn't lose it. Clear button is hidden when no kind is selected.
+- Page-mode compose: same row of radio pills + Clear, themed for the BugHerd-style card. Independent state from the drawer's compose (each surface has its own `composeKind`).
+- Drawer list items: single colored badge (Bug = red, Feature = blue, Note = neutral) below the body.
+- Page-mode view card: same single badge above the body.
+**Consumer action:** Adapters that want to persist + round-trip `kind` need to surface the field. Adapters that ignore the field stay backwards compatible; UI shows radios but `kind` gets dropped on the wire. Pivotal adapter update lands in a separate PR (Pivotal repo).
 
 ## Fixed
 
@@ -45,5 +62,5 @@ See `docs/dev-workflow.md` for the canonical recipe when iterating on the widget
 ## Known limitations (not bugs)
 
 - **0.0.x signals pre-stable.** Breaking changes in CreateInput / Annotation are allowed without major bumps until 0.1.x. Pin to exact `file:vendor/...tgz` paths in consumers to avoid surprises.
-- **No filter UI yet** for the planned `kinds: ('bug' | 'feature' | 'note')[]` metadata. Tracked as a feature, not a bug.
+- **No filter UI yet** for the `kind?: 'bug' | 'feature' | 'note'` metadata. Tracked as a feature, not a bug.
 - **Toggle between drawer-default and overlay-default at runtime.** Currently requires mounting both `AnnotationWidget({renderMode:'drawer'})` and `AnnotationPageMode` in parallel (which is what Pivotal does). A first-class "switch render mode" UI in the widget is on the roadmap.

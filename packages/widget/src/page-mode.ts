@@ -30,7 +30,7 @@ import type { ApiAdapter, AuthAdapter } from './adapters'
 import { captureRouteAnchor } from './anchor-route'
 import { captureEnvironment } from './environment'
 import { onRouteChange } from './route-watcher'
-import type { Annotation, AnnotationAnchor, AuthorRef, CreateInput } from './types'
+import type { Annotation, AnnotationAnchor, AnnotationKind, AuthorRef, CreateInput } from './types'
 
 const HOST_ID = 'travisEATSbugs-page-host'
 const ATTR_PIN = 'data-teb-pin'
@@ -106,6 +106,7 @@ export class AnnotationPageMode {
   private currentHover: Element | null = null
   private composeValue = ''
   private composeEmail = ''
+  private composeKind: AnnotationKind | null = null
   private mounted = false
   private unsubscribeRoute: (() => void) | null = null
 
@@ -419,6 +420,7 @@ export class AnnotationPageMode {
     this.mode = { kind: 'active' }
     this.composeValue = ''
     this.composeEmail = ''
+    this.composeKind = null
     this.render()
   }
 
@@ -428,10 +430,12 @@ export class AnnotationPageMode {
     if (!body) return
     const anchor = this.mode.anchor
     const environment = captureEnvironment() ?? undefined
+    const kind = this.composeKind
     const input: CreateInput = {
       anchor,
       body,
       ...(environment ? { environment } : {}),
+      ...(kind ? { kind } : {}),
     }
     try {
       const created = await this.opts.api.create(input)
@@ -442,6 +446,7 @@ export class AnnotationPageMode {
       }
       this.composeValue = ''
       this.composeEmail = ''
+      this.composeKind = null
       this.mode = { kind: 'active' }
       await this.refresh()
     } catch (err) {
@@ -559,6 +564,48 @@ export class AnnotationPageMode {
     })
     card.appendChild(ta)
 
+    // Optional kind radios (bug / feature / note) + Clear. Match the
+    // drawer's shape so reporters see the same classification UI on both
+    // surfaces.
+    const kindsRow = document.createElement('div')
+    kindsRow.className = 'teb-kinds-row'
+    kindsRow.setAttribute('role', 'radiogroup')
+    kindsRow.setAttribute('aria-label', 'Optional classification')
+    const radioInputs: HTMLInputElement[] = []
+    const clearBtn = document.createElement('button')
+    clearBtn.type = 'button'
+    clearBtn.className = 'teb-kind-clear'
+    clearBtn.textContent = 'Clear'
+    clearBtn.hidden = !this.composeKind
+    for (const k of ['bug', 'feature', 'note'] as const) {
+      const label = document.createElement('label')
+      label.className = 'teb-kind-pill'
+      const input = document.createElement('input')
+      input.type = 'radio'
+      input.name = 'teb-page-kind'
+      input.dataset.kind = k
+      input.checked = this.composeKind === k
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          this.composeKind = k
+          clearBtn.hidden = false
+        }
+      })
+      const span = document.createElement('span')
+      span.textContent = k.charAt(0).toUpperCase() + k.slice(1)
+      label.appendChild(input)
+      label.appendChild(span)
+      kindsRow.appendChild(label)
+      radioInputs.push(input)
+    }
+    clearBtn.addEventListener('click', () => {
+      this.composeKind = null
+      for (const r of radioInputs) r.checked = false
+      clearBtn.hidden = true
+    })
+    kindsRow.appendChild(clearBtn)
+    card.appendChild(kindsRow)
+
     const info = this.buildAdditionalInfo(this.mode.anchor)
     card.appendChild(info)
 
@@ -595,6 +642,19 @@ export class AnnotationPageMode {
       this.mode = { kind: 'active' }
       this.render()
     })
+
+    // Render the kind badge before the body if the annotation has one.
+    // Adapters that don't persist Annotation.kind end up with undefined.
+    const k = pin.annotation.kind
+    if (k && (k === 'bug' || k === 'feature' || k === 'note')) {
+      const badges = document.createElement('div')
+      badges.className = 'teb-kind-badges'
+      const badge = document.createElement('span')
+      badge.className = `teb-kind-badge kind-${k}`
+      badge.textContent = k
+      badges.appendChild(badge)
+      card.appendChild(badges)
+    }
 
     const body = document.createElement('div')
     body.className = 'teb-view-body'
@@ -912,6 +972,71 @@ const STYLE_TEXT = `
   border-color: #ff2a6d;
   box-shadow: 0 0 0 3px rgba(255, 42, 109, 0.18);
 }
+
+.teb-kinds-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.teb-kind-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  background: #fffaf0;
+  border: 1px solid rgba(12, 9, 8, 0.18);
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(12, 9, 8, 0.62);
+  cursor: pointer;
+  user-select: none;
+  transition: background 160ms cubic-bezier(0.45, 0, 0.55, 1), color 160ms cubic-bezier(0.45, 0, 0.55, 1);
+}
+.teb-kind-pill input { margin: 0; cursor: pointer; }
+.teb-kind-pill:has(input:checked) {
+  background: #ff2a6d;
+  color: #fff;
+  border-color: transparent;
+}
+.teb-kind-clear {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(12, 9, 8, 0.55);
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 3px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.teb-kind-clear:hover { color: #0c0908; }
+.teb-kind-clear:focus-visible {
+  outline: 2px solid #0c0908;
+  outline-offset: 2px;
+}
+.teb-kind-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.teb-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.teb-kind-badge.kind-bug { background: rgba(196, 57, 50, 0.14); color: #c43932; }
+.teb-kind-badge.kind-feature { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
+.teb-kind-badge.kind-note { background: rgba(148, 163, 184, 0.16); color: rgba(12, 9, 8, 0.6); }
 
 .teb-view-body {
   background: #fffaf0;
