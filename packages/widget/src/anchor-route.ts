@@ -46,10 +46,138 @@ function getNormalizedPath(): string {
   return raw.replace(/\/+$/, '') || '/'
 }
 
+/**
+ * Class names that look like Tailwind / atomic-CSS utilities. Picking
+ * these for selectors gives wildly ambiguous matches (`.items-start`
+ * matches dozens of nodes on a typical Pivotal page), which means
+ * `document.querySelector(sel)` returns the wrong element on render and
+ * pins anchor visually in the "wrong place". @medv/finder's `className`
+ * predicate lets us veto these so finder falls back to tag + nth-of-type
+ * + structural selectors that survive class churn.
+ */
+const TW_UTILITY_PREFIXES = [
+  'p-',
+  'pt-',
+  'pb-',
+  'pl-',
+  'pr-',
+  'px-',
+  'py-',
+  'm-',
+  'mt-',
+  'mb-',
+  'ml-',
+  'mr-',
+  'mx-',
+  'my-',
+  'w-',
+  'h-',
+  'min-',
+  'max-',
+  'size-',
+  'text-',
+  'bg-',
+  'border',
+  'rounded',
+  'shadow',
+  'font-',
+  'tracking-',
+  'leading-',
+  'tabular-',
+  'flex',
+  'inline-flex',
+  'grid',
+  'inline-grid',
+  'block',
+  'inline',
+  'inline-block',
+  'hidden',
+  'contents',
+  'items-',
+  'justify-',
+  'self-',
+  'place-',
+  'content-',
+  'gap-',
+  'space-',
+  'cursor-',
+  'select-',
+  'whitespace-',
+  'overflow-',
+  'truncate',
+  'relative',
+  'absolute',
+  'fixed',
+  'sticky',
+  'static',
+  'top-',
+  'bottom-',
+  'left-',
+  'right-',
+  'inset-',
+  'z-',
+  'opacity-',
+  'ring-',
+  'divide-',
+  'transition',
+  'duration-',
+  'ease-',
+  'delay-',
+  'animate-',
+  'uppercase',
+  'lowercase',
+  'capitalize',
+  'normal-case',
+  'group',
+  'peer',
+  'hover:',
+  'focus:',
+  'focus-visible:',
+  'active:',
+  'disabled:',
+  'sm:',
+  'md:',
+  'lg:',
+  'xl:',
+  '2xl:',
+  'dark:',
+  'motion-',
+]
+
+function isUtilityClass(name: string): boolean {
+  if (!name) return true
+  // Arbitrary-value utilities like `min-h-[180px]` or `[var(--accent)]`.
+  if (name.includes('[') || name.includes(']')) return true
+  // Escaped colons survive in querySelector strings as `\:`; the unescaped
+  // form here still contains the colon. Tailwind variant prefixes.
+  if (name.includes(':') || name.includes('\\:')) return true
+  // Single-letter utility names like `p` or `m` (rare; defensive).
+  if (name.length <= 1) return true
+  for (const prefix of TW_UTILITY_PREFIXES) {
+    if (name === prefix) return true
+    if (name.startsWith(prefix)) return true
+  }
+  return false
+}
+
 function generateSelector(target: Element): string | undefined {
   if (!(target instanceof Element)) return undefined
   try {
-    return finder(target as HTMLElement)
+    return finder(target as HTMLElement, {
+      // Veto class names that look like utility-class noise. With every
+      // candidate vetoed, @medv/finder falls back to tagName + structural
+      // position, which yields stable selectors on rebuilt DOM.
+      className: (name) => !isUtilityClass(name),
+      // Allow ids (often semantic) and data-* attrs (intentional).
+      idName: (name) => Boolean(name) && !name.startsWith(':'),
+      attr: (name, value) => {
+        if (!name) return false
+        if (name === 'id') return Boolean(value) && !value.startsWith(':')
+        if (name.startsWith('data-')) return Boolean(value)
+        if (name === 'aria-label') return Boolean(value)
+        return false
+      },
+    })
   } catch {
     return fallbackSelector(target)
   }
