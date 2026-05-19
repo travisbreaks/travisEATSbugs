@@ -6,6 +6,7 @@ export type { InitOptions } from './bug-mode'
 export type {
   Annotation,
   AnnotationAnchor,
+  AnnotationKind,
   AnchorQuery,
   AuthorRef,
   CreateInput,
