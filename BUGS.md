@@ -21,6 +21,7 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 | Version | Date | Headline |
 |---|---|---|
+| 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors |
 | 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge |
 | 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) |
 | 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) |
@@ -59,6 +60,23 @@ _None tracked at the moment. Add new entries here as they come in._
 **Consumer action:** Adapters that want to persist + round-trip `kind` need to surface the field. Adapters that ignore the field stay backwards compatible; UI shows radios but `kind` gets dropped on the wire. Pivotal adapter update lands in a separate PR (Pivotal repo).
 
 ## Fixed
+
+### B3 - Pins anchor to the wrong element when selectors are utility-class noise [0.0.6-alpha.0]
+
+**Reported:** 2026-05-19 by Cole via Travis (consumer: Pivotal).
+**Symptom:** After the 0.0.5 orphan-hide ship, pins on `/` still rendered in visibly wrong positions. Specifically Cole had 3 pins clustered at the top of the dashboard but the markers were over different cards than the ones he originally clicked.
+**Root cause:** Two compounding bugs.
+
+1. `@medv/finder` was selecting Tailwind utility classes as the "shortest unique selector". Stored selectors like `.items-start:nth-child(2)`, `.border:nth-child(1)`, and `.min-h-\[180px\]:nth-child(6)` match dozens of elements across a typical page because the utility classes describe styling, not identity.
+2. `resolveTarget` used `document.querySelector(selector)` which returns the FIRST match. With ambiguous selectors, that first match is almost never the intended target — yielding "anchored but wrong" pins.
+
+**Fix:**
+
+- **Resolve-time disambiguation:** rewrote the resolution chain. When the stored selector matches multiple elements, fall through to xpath (the strongest structural signal). If xpath also misses, fall through to textQuote (W3C-style exact + prefix/suffix from the original capture, walks text nodes to find candidates). If text misses too, fall through to a viewport-coordinate `elementFromPoint` last resort. Only the orphan case (every fallback fails) hides the pin.
+- **Capture-time selector quality:** pass `@medv/finder` a `className` predicate that vetoes Tailwind utility patterns (TW_UTILITY_PREFIXES blacklist plus the `[...]`, `:`, and `\:` shapes that arbitrary values + variant prefixes use). With every utility class vetoed, finder falls back to tagName + structural position which survives DOM rebuilds.
+- **Resolve telemetry:** `resolveTargetForAnchor()` returns `{ target, via }` so future host code can detect when a pin resolved through a fallback (signal for auto-heal: PATCH the anchor with the now-known correct selector so subsequent renders are fast).
+
+**Consumer action:** re-vendor 0.0.6 and redeploy. Existing pins with utility-class selectors will still resolve correctly via the new fall-through; net effect is "pins land back in the right spot". New pins captured against the live DOM use the structural selector so subsequent rebuilds keep them anchored.
 
 ### B2 - Orphan pins stack on viewport edge when selectors break [0.0.5-alpha.0]
 
