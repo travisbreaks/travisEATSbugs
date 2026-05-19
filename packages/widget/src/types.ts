@@ -110,6 +110,21 @@ export type Environment = {
   capturedAt: number
 }
 
+/**
+ * Optional kind / classification metadata. Single-select to match the
+ * Gemini call-notes phrasing from 2026-05-18 ("radio button or toggle for
+ * bug, feature request, or note categorization") plus an explicit Clear
+ * affordance so a reporter can still submit a note with no classification
+ * (the "brain dump" path Cole asked for on iMessage: "tick boxes in the
+ * note itself (optional)").
+ *
+ * The shape is intentionally a fixed string-literal union (not free-form
+ * tags) to keep the UI compact + match the three categories Cole asked
+ * for: bug, feature, note. Free-form tags / labels can come later as a
+ * separate field if a use case appears.
+ */
+export type AnnotationKind = 'bug' | 'feature' | 'note'
+
 export type Annotation = {
   id: string
   anchor: AnnotationAnchor
@@ -135,6 +150,9 @@ export type Annotation = {
    * "Additional Info" payload. Optional so pre-environment annotations
    * still validate. */
   environment?: Environment
+  /** Reporter-supplied single classification (bug / feature / note).
+   * Missing = no classification (the brain-dump path Cole asked for). */
+  kind?: AnnotationKind
 }
 
 /**
@@ -157,6 +175,7 @@ export type UpdatePatch =
   | { relatedIds?: string[]; dupOf?: string }
   | { triage: TriageResult }
   | { anchor: AnnotationAnchor }
+  | { kind: AnnotationKind | null }
 
 export type AnchorQuery = { mode: 'route'; path?: string } | { mode: 'spatial'; surfaceId?: string }
 
@@ -175,6 +194,10 @@ export type CreateInput = Pick<Annotation, 'anchor' | 'body'> & {
    * "Additional Info" panel). Adapters that persist Annotation.environment
    * carry it through; adapters that don't can ignore it. */
   environment?: Annotation['environment']
+  /** Optional single classification from the compose UI (bug / feature /
+   * note). Adapters that don't persist Annotation.kind drop the field on
+   * the wire; adapters that do round-trip it transparently. */
+  kind?: Annotation['kind']
 }
 
 /**
