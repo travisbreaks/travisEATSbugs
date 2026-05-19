@@ -80,6 +80,17 @@ export type WidgetMount =
       renderMode: 'drawer'
       position?: { bottom: number; right: number }
       open?: boolean
+      /**
+       * Drawer visual layout. 'floating' (default) = bottom-right
+       * pop-up panel. 'right-rail' = full-height side drawer pinned
+       * to the right edge of the viewport.
+       */
+      layout?: 'floating' | 'right-rail'
+      /** Right-rail width in px. Default 420. */
+      railWidth?: number
+      /** Render a translucent click-to-dismiss backdrop behind the
+       * rail. Only meaningful with layout='right-rail'. Default false. */
+      backdrop?: boolean
     }
   | {
       renderMode: 'overlay'
@@ -158,6 +169,9 @@ export class AnnotationWidget {
         ...(opts.theme ? { theme: opts.theme } : {}),
         ...(opts.position ? { position: opts.position } : {}),
         ...(opts.open ? { open: opts.open } : {}),
+        ...(opts.layout ? { layout: opts.layout } : {}),
+        ...(opts.railWidth !== undefined ? { railWidth: opts.railWidth } : {}),
+        ...(opts.backdrop !== undefined ? { backdrop: opts.backdrop } : {}),
         ...(opts.reporterPrompt ? { reporterPrompt: opts.reporterPrompt } : {}),
       }
       this.drawer = new AnnotationDrawer(drawerOpts)
