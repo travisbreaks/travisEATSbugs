@@ -507,15 +507,19 @@ export class AnnotationPageMode {
     }
     // Pins.
     for (const pin of this.pins.values()) {
+      // Skip orphan pins entirely. Previously these stacked on the
+      // viewport top-left as gray circles, which looked broken on any
+      // page whose DOM had drifted since the pin was placed. The drawer
+      // surfaces these notes in the list view by route; only the
+      // on-page marker is dropped.
+      if (!pin.target) continue
       const el = document.createElement('button')
       el.type = 'button'
       el.setAttribute(ATTR_PIN, pin.id)
       el.className = 'teb-pin'
       // Per-pin kind badge: color the pin background by kind so the
       // reporter can scan the page and see classification at a glance.
-      // Unclassified pins keep the default accent (pink). Stale pins
-      // still win over kind class (gray means "selector broken", which
-      // is more urgent than "what kind").
+      // Unclassified pins keep the default accent (pink).
       const k = pin.annotation.kind
       if (k && (k === 'bug' || k === 'feature' || k === 'note')) {
         el.classList.add(`teb-pin-${k}`)
@@ -531,7 +535,6 @@ export class AnnotationPageMode {
         this.mode = { kind: 'viewing', pin }
         this.render()
       })
-      if (!pin.target) el.classList.add('teb-pin-stale')
       root.appendChild(el)
     }
     // Card: compose or view.
@@ -932,8 +935,14 @@ const STYLE_TEXT = `
     0 0 0 8px rgba(100, 116, 139, 0.25);
 }
 
+/* Orphan pins (selector no longer resolves in the live DOM) used to stack
+ * vertically on the left edge as gray circles, which read as broken on any
+ * page that's been refactored since the pins were dropped. Hide them outright.
+ * The drawer-list view still surfaces every note for the route regardless of
+ * anchor resolution, so the data isn't lost — only the on-page pin marker
+ * disappears when its target is gone. */
 .teb-pin-stale {
-  background: #767676;
+  display: none !important;
 }
 
 .teb-card {
