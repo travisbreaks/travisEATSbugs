@@ -1,6 +1,6 @@
 {
   "name": "@travisbreaks/travisEATSbugs-http",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.7-alpha.0",
   "description": "Generic HTTP adapter for travisEATSbugs (BYO backend).",
   "license": "Apache-2.0",
   "author": "Travis Bonnet <travisbonnet@gmail.com>",
