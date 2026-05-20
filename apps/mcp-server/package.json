@@ -1,0 +1,52 @@
+{
+  "name": "@travisbreaks/travisEATSbugs-mcp",
+  "version": "0.0.10-alpha.0",
+  "description": "Model Context Protocol server for travisEATSbugs. Exposes feedback annotations as MCP tools so AI agents (Claude Code, Claude Desktop, etc.) can list, inspect, and resolve notes against the canonical worker.",
+  "license": "Apache-2.0",
+  "author": "Travis Bonnet <travisbonnet@gmail.com>",
+  "homepage": "https://github.com/travisbreaks/travisEATSbugs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/travisbreaks/travisEATSbugs.git",
+    "directory": "apps/mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/travisbreaks/travisEATSbugs/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "travisEATSbugs",
+    "feedback",
+    "annotation",
+    "claude"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "teb-mcp": "./dist/index.js"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@travisbreaks/travisEATSbugs": "workspace:*",
+    "@travisbreaks/travisEATSbugs-http": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
