@@ -42,12 +42,12 @@
     "@travisbreaks/travisEATSbugs": "workspace:*"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.15",
     "@types/better-sqlite3": "^7.6.11",
-    "@types/node": "^22.9.0",
-    "better-sqlite3": "^11.5.0",
+    "@types/node": "^25.9.1",
+    "better-sqlite3": "^12.10.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   }
 }

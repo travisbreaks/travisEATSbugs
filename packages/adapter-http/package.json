@@ -41,10 +41,10 @@
     "@travisbreaks/travisEATSbugs": "workspace:*"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/node": "^22.9.0",
+    "@biomejs/biome": "^2.4.15",
+    "@types/node": "^25.9.1",
     "tsup": "^8.3.5",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   }
 }
