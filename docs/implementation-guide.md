@@ -5,10 +5,10 @@ Add the BugHerd-style "click anywhere on the page to drop a pin" interaction to 
 ## The thing to use
 
 - **Package**: [`@travisbreaks/travisEATSbugs`](../packages/widget) (pnpm add)
-- **Renderer**: [`AnnotationPageMode`](../packages/widget/src/page-mode.ts) — shadow-DOM overlay on `document.body`, click-anywhere capture, on-page pin overlay anchored to elements via CSS selector + xpath
-- **Bug button**: [`init` / `toggle` / `destroy`](../packages/widget/src/bug-mode.ts) — floating launcher with the wiggle. To get the lively wiggle on a button you've already themed, just remove any `animation: none` override you set.
-- **Environment capture**: [`captureEnvironment`](../packages/widget/src/environment.ts) — URL / OS / browser / screen / window / color depth. Page-mode calls it automatically on every new pin.
-- **Anchor capture**: [`captureRouteAnchor`](../packages/widget/src/anchor-route.ts) — CSS selector via `@medv/finder` + xpath fallback. Called automatically.
+- **Renderer**: [`AnnotationPageMode`](../packages/widget/src/page-mode.ts): shadow-DOM overlay on `document.body`, click-anywhere capture, on-page pin overlay anchored to elements via CSS selector + xpath
+- **Bug button**: [`init` / `toggle` / `destroy`](../packages/widget/src/bug-mode.ts): floating launcher with the wiggle. To get the lively wiggle on a button you've already themed, just remove any `animation: none` override you set.
+- **Environment capture**: [`captureEnvironment`](../packages/widget/src/environment.ts): URL / OS / browser / screen / window / color depth. Page-mode calls it automatically on every new pin.
+- **Anchor capture**: [`captureRouteAnchor`](../packages/widget/src/anchor-route.ts): CSS selector via `@medv/finder` + xpath fallback. Called automatically.
 - **Annotation shape** (what an adapter persists): [packages/widget/src/types.ts](../packages/widget/src/types.ts)
 - **Adapter contract**: [packages/widget/src/adapters.ts](../packages/widget/src/adapters.ts). Reference implementations: [MemoryAdapter](../packages/widget/src/adapter-memory.ts), [LocalStorageAdapter](../packages/widget/src/adapter-localstorage.ts), [CloudflareAdapter](../packages/adapter-cloudflare/src/cloudflare-adapter.ts).
 - **Live demo**: [apps/playground/app/page.tsx](../apps/playground/app/page.tsx) shows the full wiring with `MemoryAdapter`. The marketing page at [travismakes-org/travis-eats-bugs/index.html](../../travismakes-org/travis-eats-bugs/index.html) shows the same wiring with `LocalStorageAdapter` via the IIFE bundle.
@@ -25,9 +25,9 @@ Add the BugHerd-style "click anywhere on the page to drop a pin" interaction to 
 
 ## What the host has to write
 
-One `ApiAdapter` (`list`, `create`, `update`, `delete`) that talks to the host's existing backend. The widget owns no I/O — it calls the adapter and renders the result. Sites that just want a demo with no backend can use `LocalStorageAdapter` as-is.
+One `ApiAdapter` (`list`, `create`, `update`, `delete`) that talks to the host's existing backend. The widget owns no I/O. It calls the adapter and renders the result. Sites that just want a demo with no backend can use `LocalStorageAdapter` as-is.
 
-If the host's existing data shape doesn't carry `environment` (JSON), `anchor.xpath`, or `anchor.textQuote.*`, add optional columns. Old rows without them keep working — the widget renders "(unknown)" for missing fields.
+If the host's existing data shape doesn't carry `environment` (JSON), `anchor.xpath`, or `anchor.textQuote.*`, add optional columns. Old rows without them keep working; the widget renders "(unknown)" for missing fields.
 
 ## Wiring shape (copy + adapt)
 
