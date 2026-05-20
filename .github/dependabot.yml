@@ -11,11 +11,13 @@ updates:
     commit-message:
       prefix: chore(deps)
       include: scope
-    groups:
-      dev-dependencies:
-        dependency-type: development
-      production-dependencies:
-        dependency-type: production
+    # Per-package PRs (no grouping). Group PRs proved unmergeable when even
+    # one package in the group had breaking changes: the 2026-05-20 first
+    # dependabot run produced PR #31 (dev-deps: Biome 2 + Vitest 4 + TS 6 +
+    # Wrangler 4 + happy-dom 20) and PR #32 (prod-deps: @medv/finder v4 +
+    # next v16), both CI-red and blocked on per-package migration work.
+    # Splitting per-package lets the safe updates merge cleanly while the
+    # breaking ones get their own per-package PR for review.
     labels:
       - dependencies
 
