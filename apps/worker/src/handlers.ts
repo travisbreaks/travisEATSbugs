@@ -73,6 +73,9 @@ export async function handle(req: Request, env: WorkerEnv): Promise<Response> {
     if (path === '/annotations' && req.method === 'POST') {
       return await handleCreate(req, env, auth)
     }
+    if (path === '/annotations/bulk' && req.method === 'POST') {
+      return await handleBulkCreate(req, env, auth)
+    }
     const idMatch = /^\/annotations\/([^/]+)$/.exec(path)
     if (idMatch?.[1]) {
       const id = decodeURIComponent(idMatch[1])
@@ -135,6 +138,71 @@ async function handleCreate(req: Request, env: WorkerEnv, auth: AuthIdentity): P
   const created = await adapter.create(body)
   return new Response(JSON.stringify(created), {
     status: 201,
+    headers: { ...JSON_HEADERS, ...corsHeaders(req, env) },
+  })
+}
+
+/**
+ * Bulk-ingest endpoint. Accepts an array of CreateInput items and
+ * one-creates-per-item against the adapter. Returns a summary with the
+ * successful annotations alongside any per-item errors, so a partial
+ * failure does not abort the entire batch.
+ *
+ * Member-token only. Bulk insert is an admin / migration operation; share-
+ * link tokens get 403. Volume is capped at MAX_BULK_ITEMS to keep one
+ * request well within Worker CPU budgets; large imports should chunk.
+ *
+ * Use cases:
+ *   - Brain-dump import: bulk-insert a batch of notes from a transcript /
+ *     spreadsheet / call-prep doc into the inbox in one go (the pattern
+ *     Pivotal did with notes 49-72 via raw SQL becomes an API).
+ *   - Migration: move notes from another system into TEB without per-row
+ *     POST round-trips.
+ *   - Seeding: initialize a fresh tenant with a starter set of notes.
+ */
+const MAX_BULK_ITEMS = 200
+
+async function handleBulkCreate(
+  req: Request,
+  env: WorkerEnv,
+  auth: AuthIdentity,
+): Promise<Response> {
+  if (auth.kind !== 'member') {
+    return jsonError(403, 'bulk_member_only', req, env)
+  }
+  const body = (await req.json()) as { items?: CreateInput[] }
+  if (!body || typeof body !== 'object' || !Array.isArray(body.items)) {
+    return jsonError(400, 'invalid_body', req, env)
+  }
+  if (body.items.length === 0) {
+    return jsonError(400, 'empty_items', req, env)
+  }
+  if (body.items.length > MAX_BULK_ITEMS) {
+    return jsonError(413, `too_many_items_max_${MAX_BULK_ITEMS}`, req, env)
+  }
+  const adapter = buildAdapter(env, auth)
+  const created: Annotation[] = []
+  const errors: { index: number; error: string }[] = []
+  // Sequential so adapter audit-log ordering stays deterministic. D1
+  // transactions are scoped per-statement; we accept the per-row latency
+  // in exchange for individual-row error isolation (one bad row does not
+  // taint the rest of the batch).
+  for (let i = 0; i < body.items.length; i++) {
+    const item = body.items[i]
+    if (!item || typeof item !== 'object') {
+      errors.push({ index: i, error: 'invalid_item' })
+      continue
+    }
+    try {
+      const annotation = await adapter.create(item)
+      created.push(annotation)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'create_failed'
+      errors.push({ index: i, error: message })
+    }
+  }
+  return new Response(JSON.stringify({ created, errors }), {
+    status: 200,
     headers: { ...JSON_HEADERS, ...corsHeaders(req, env) },
   })
 }

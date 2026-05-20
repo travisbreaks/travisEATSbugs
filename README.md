@@ -7,7 +7,7 @@
 
 **Live demo:** [travismakes.org/travis-eats-bugs/](https://travismakes.org/travis-eats-bugs/). The marketing page itself is the playground. Click the bug button bottom-right.
 
-**Status:** alpha (`0.0.7-alpha.0`). API surface is stabilizing. Public npm publish lands at v1.0.0.
+**Status:** alpha (`0.0.10-alpha.0`). API surface is stabilizing. Public npm publish lands at v1.0.0.
 
 ## Install
 
