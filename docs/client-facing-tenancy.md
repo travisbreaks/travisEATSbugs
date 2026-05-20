@@ -1,4 +1,4 @@
-# Client-Facing Tenancy — design scoping
+# Client-Facing Tenancy: design scoping
 
 **Status:** pre-build design doc (Phase A6 pilot + Phase B multi-tenant rollout)
 **Date:** 2026-05-19
@@ -62,7 +62,7 @@ not in LSD's global inbox.
   `{adapterUrl: "https://lionsshare.../api/page-notes/acme"}`; explicit
   endpoint per client.
 
-**Recommendation:** (a) — single endpoint, tenant ID in payload. Cheapest
+**Recommendation:** (a). Single endpoint, tenant ID in payload. Cheapest
 to add/remove clients (no DNS, no per-client adapter deploys).
 
 ### 3. Embed pattern
@@ -81,7 +81,7 @@ to add/remove clients (no DNS, no per-client adapter deploys).
   their managed sites.
 
 **Recommendation:** (a) plus (c) eventually. (a) is universal and works
-on non-WP sites too. (c) is the LSD-internal UX win — they can deploy it
+on non-WP sites too. (c) is the LSD-internal UX win: they can deploy it
 across 45+ WP sites in minutes via WPMU Dev rather than touching theme
 files.
 
@@ -97,7 +97,7 @@ LSD-generic?
   `logoUrl`. Widget renders with those.
 - (c) **Full theme override.** Per-client CSS bundle, fonts, copy.
 
-**Recommendation:** (b) — primary color + logo per client. Reads like
+**Recommendation:** (b): primary color + logo per client. Reads like
 the client's tool. Low-effort: extend the existing widget theme config to
 read from tenant payload.
 
@@ -155,7 +155,7 @@ quality-of-life LSD-internal differentiator?
 sticky retainer, generates ongoing signal for LSD's product roadmap, no
 per-site billing complexity.
 
-## Phase A6 pilot — what it actually delivers
+## Phase A6 pilot: what it actually delivers
 
 One pilot client (Jesse picks during kickoff). Implements:
 - Decision 1 (a): anonymous + share-token
@@ -171,7 +171,7 @@ site; LSD sees those bugs scoped to that client's management page in LS
 OS with the client's brand applied; LSD ships fixes; weekly digest goes
 back to the client.
 
-## Phase B rollout — what scales beyond the pilot
+## Phase B rollout: what scales beyond the pilot
 
 Phase B1 (multi-tenant rollout) takes the working A6 architecture and:
 - Builds a tenant-management UI in LS OS (`/clients/<id>/widget-config`)
@@ -185,19 +185,86 @@ Phase B2 (per-client theming + feedback aggregation) layers in:
 - PR/fix linkage that flows resolution status back to per-client digest
 - /Pack-level visibility into "which clients have unresolved feedback"
 
-## Open questions for Travis (pre-A6)
+## Decisions ratified 2026-05-20
 
-1. **Reporter-mode evolution.** The widget's existing reporter-mode is
-   single-tenant. Does A6 piggyback on reporter-mode and add tenant_id, or
-   does A6 spin a separate "client-facing mode" with its own surface?
-2. **Asset hosting for tenant-specific theme assets.** Logo + brand color
-   per tenant — does that live in R2, in D1 as base64, or fetched
-   live from each client's site?
-3. **Embed bundle versioning.** When the widget code updates, do all
-   tenants auto-roll forward, or do tenants pin a version?
-4. **Anonymous abuse.** Anonymous mode means anyone-on-the-internet can
-   spam the widget. Rate limit per-IP + per-tenant? Captcha? Just trust
-   for the pilot and revisit if it becomes a problem?
+The four open questions are now answered. These bind the A6 build.
 
-These don't block writing the doc. They block writing the code. Sequence
-them into the Phase A6 kickoff conversation.
+### D1: Reporter identity for client-facing widget
+
+**Decision:** Extend the existing reporter mode. Add tenant id to the
+same code path. No new "client-facing mode" branch.
+
+**Rationale:** Reporter mode already carries non-member identity
+(originally for share-link recipients). Adding tenant id to the same
+code path is less surface area, less code to test, and preserves the
+single-tenant share-link use case (tenant id stays null for those).
+The cost is reporter mode does double duty, which is acceptable.
+
+**Code impact:** `WidgetOpts.tenantId?: string`, `WidgetOpts.tenantToken?:
+string` flow into `CreateInput.tenantId`. Worker extracts tenant from
+HMAC-signed token. Adapters that already round-trip reporter identity
+just gain a tenant_id column.
+
+### D2: Tenant theme assets (logo + brand color)
+
+**Decision:** Host on R2 CDN. Color is a hex string stored in the
+tenant config; logo is uploaded to R2 at
+`r2://<bucket>/tenants/<tenantId>/logo.png` and the URL is stored in
+the tenant config.
+
+**Rationale:** We own the CDN. Cache control is predictable. Costs
+are negligible at LSD's scale (45 clients * ~10 KB logo = 0.5 MB).
+D1 base64 was rejected because D1 isn't sized for blob storage and
+queries get bloated. Live-fetch from the client's own site was
+rejected because the client could move/break the asset and our
+widget would silently render a broken image.
+
+**Code impact:** Add `lions_clients.primary_color TEXT` and
+`lions_clients.logo_r2_path TEXT` columns (LS-side, mig 055). The
+`/api/clients/[id]/logo` POST endpoint uploads to R2. Widget pulls
+theme on init.
+
+### D3: Embed bundle versioning
+
+**Decision:** Per-tenant version pin, with LS as the canary tenant
+(rolling/latest) and Pivotal as a stable-pinned tenant. Other clients
+configurable per-tenant.
+
+**Rationale:** Pivotal is in active production use by Cole; an
+unintended widget breaking change midstream is a real risk. LS has
+no equivalent live-user-coupling and is a natural canary. Per-tenant
+pin lets us roll out version changes cohort-by-cohort instead of
+blast-radius-all.
+
+**Code impact:** Worker serves both `eats.travisfixes.com/v1.js`
+(canary, latest) and `eats.travisfixes.com/v0.0.7/widget.js` (pinned)
+out of R2 versioned bundle storage. Tenant config has
+`bundle_version: "latest" | "0.0.7" | "0.0.8" | ...`. LS subscribes
+to `"latest"`, Pivotal pins to a specific version, other clients
+configure per their own risk tolerance.
+
+### D4: Client access on production (replaces "anonymous abuse" question)
+
+**Decision:** Auth-gated on production. The widget on a client's
+production site is NOT for random visitors. It's for the client's
+team (their devs, leadership, Jesse's POC). The embed script checks
+a magic-link token (URL param `?eats=<token>` OR
+`localStorage['teb_token']`) before rendering. No token = widget
+does not render. Random visitor sees zero.
+
+**Rationale:** This is structurally different from BugHerd's
+public-guest-portal model. TEB on a client site behaves like a
+private feedback channel for the client's stakeholders. Anonymous
+abuse is moot because anonymous use is moot. The reporter is always
+a known token holder. Jesse / LSD admin issues tokens to the client's
+team via the LS OS UI.
+
+**Code impact:** Widget reads token on init. No token = bail.
+No DOM, no listeners, no button. The embed snippet in
+`/pack/[client]/widget-config` includes the token. Token rotation
+is a future capability (`/api/clients/[id]/rotate-token` endpoint).
+
+## What this unblocks
+
+Phase A6 build can start. The build order is in
+`~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md` Phase 2.
