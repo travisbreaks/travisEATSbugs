@@ -316,6 +316,140 @@ describe('worker handlers', () => {
     })
   })
 
+  describe('POST /annotations/bulk', () => {
+    const memberToken = 'member-token-aaaaaaaa'
+
+    it('member token creates multiple annotations in one call', async () => {
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: memberToken,
+          body: {
+            items: [
+              { anchor: { mode: 'route', path: '/a' }, body: 'note 1' },
+              { anchor: { mode: 'route', path: '/b' }, body: 'note 2' },
+              { anchor: { mode: 'route', path: '/c' }, body: 'note 3' },
+            ],
+          },
+        }),
+        env,
+      )
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        created: Array<{ id: string; body: string }>
+        errors: unknown[]
+      }
+      expect(json.created).toHaveLength(3)
+      expect(json.errors).toHaveLength(0)
+      expect(json.created.map((a) => a.body)).toEqual(['note 1', 'note 2', 'note 3'])
+    })
+
+    it('rejects share-link (reporter) tokens with 403', async () => {
+      const token = await signShareToken(
+        {
+          projectId: 'demo',
+          reporterId: 'reporter-xyz',
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        },
+        SECRET,
+      )
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: token,
+          body: { items: [{ anchor: { mode: 'route', path: '/' }, body: 'x' }] },
+        }),
+        env,
+      )
+      expect(res.status).toBe(403)
+      const json = (await res.json()) as { error: string }
+      expect(json.error).toBe('bulk_member_only')
+    })
+
+    it('returns 400 when body lacks items array', async () => {
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: memberToken,
+          body: { notItems: 'wrong' },
+        }),
+        env,
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 when items array is empty', async () => {
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: memberToken,
+          body: { items: [] },
+        }),
+        env,
+      )
+      expect(res.status).toBe(400)
+      const json = (await res.json()) as { error: string }
+      expect(json.error).toBe('empty_items')
+    })
+
+    it('returns 413 when items array exceeds the MAX_BULK_ITEMS cap', async () => {
+      const items = Array.from({ length: 201 }, (_, i) => ({
+        anchor: { mode: 'route' as const, path: `/over-${i}` },
+        body: `item ${i}`,
+      }))
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', { authToken: memberToken, body: { items } }),
+        env,
+      )
+      expect(res.status).toBe(413)
+      const json = (await res.json()) as { error: string }
+      expect(json.error).toContain('too_many_items')
+    })
+
+    it('partial-failure: one bad item does not abort the batch', async () => {
+      // Item index 1 is structurally invalid (null) so the per-item create
+      // path records it in `errors` but indices 0 and 2 still persist.
+      const res = await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: memberToken,
+          body: {
+            items: [
+              { anchor: { mode: 'route', path: '/ok-1' }, body: 'good 1' },
+              null,
+              { anchor: { mode: 'route', path: '/ok-2' }, body: 'good 2' },
+            ],
+          },
+        }),
+        env,
+      )
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        created: Array<{ body: string }>
+        errors: Array<{ index: number; error: string }>
+      }
+      expect(json.created.map((a) => a.body).sort()).toEqual(['good 1', 'good 2'])
+      expect(json.errors).toHaveLength(1)
+      expect(json.errors[0]?.index).toBe(1)
+    })
+
+    it('inserted batch is queryable via the regular list endpoint afterward', async () => {
+      await handle(
+        makeReq('POST', '/annotations/bulk', {
+          authToken: memberToken,
+          body: {
+            items: [
+              { anchor: { mode: 'route', path: '/batch-list' }, body: 'b1' },
+              { anchor: { mode: 'route', path: '/batch-list' }, body: 'b2' },
+            ],
+          },
+        }),
+        env,
+      )
+      const listRes = await handle(
+        makeReq('GET', '/annotations?mode=route&path=/batch-list', { authToken: memberToken }),
+        env,
+      )
+      const list = (await listRes.json()) as Array<{ body: string }>
+      expect(list.map((a) => a.body).sort()).toEqual(['b1', 'b2'])
+    })
+  })
+
   describe('POST /triage', () => {
     const memberToken = 'member-token-aaaaaaaa'
 
