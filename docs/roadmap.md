@@ -93,14 +93,15 @@ These are captured Pivotal-side patterns + new strategic requirements that have 
 - **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. Cole files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
 - **`docs/client-facing-tenancy.md`**: Phase A6 multi-tenant pilot for LSD. Ratified decisions D1-D4 baked into doc. Per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning (LS = canary), auth-gated production widget (no random visitor sees zero).
 
-## v0.8 and beyond (TEB OSS uplift per Phase 1 of the strategic plan)
+## v0.8 to v0.10 sprint (2026-05-20, shipped)
 
-Upstream Pivotal innovations not yet in canonical TEB. See `~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md` for the full sequenced plan.
+Phase 1 of the TEB OSS uplift. Three releases over the sprint.
 
-- **0.0.8**: bug-button + mode-picker config (positioning, animation, modes array, `onModeChange`). Hint ribbon offset config.
-- **0.0.9**: anchor rehydration built into widget default capture (selector + xpath on `Annotation.anchor`). `relatedIds` + `dupOf` as first-class fields.
-- **0.0.10**: `onMutate` adapter hook for host audit unification. Bulk ingest endpoint at canonical worker.
-- **0.0.11**: TEB MCP server (public-credibility marker). BugHerd MCP is "coming soon"; we ship a working one first.
+- [x] **0.0.8-alpha.0** (F4): bug-button + hint-ribbon config. Four Pivotal shadow-DOM workarounds upstreamed (button offset, size, animation modes, hint-ribbon offset). PR [#34](https://github.com/travisbreaks/travisEATSbugs/pull/34).
+- [x] **0.0.9-alpha.0** (B4): worker bulk ingest endpoint. `POST /annotations/bulk` (member-token only, MAX_BULK_ITEMS=200, per-item error isolation). Brain-dump ingest path is now a public API. PR [#35](https://github.com/travisbreaks/travisEATSbugs/pull/35).
+- [x] **0.0.10-alpha.0** (F5): TEB MCP server (`apps/mcp-server/`). 4 tools: `list_annotations`, `get_annotation`, `resolve_annotation`, `reopen_annotation`. Stdio transport. Wires into Claude Code via `claude mcp add teb npx @travisbreaks/travisEATSbugs-mcp`. PR [#36](https://github.com/travisbreaks/travisEATSbugs/pull/36).
+
+**v0.10 complete** (2026-05-20): originally `onMutate` was scoped for 0.0.9 and the MCP server was scoped for 0.0.11; both collapsed forward because `wrapWithAudit` already covered the `onMutate` use case, and the MCP server was ready ahead of schedule. The 0.0.10 version bump on widget + adapter-cloudflare + adapter-http aligns all public packages to the same canonical version.
 
 ## v0.6: Integrations (formerly v0.5)
 
