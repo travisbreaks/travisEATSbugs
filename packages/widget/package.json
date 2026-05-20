@@ -1,6 +1,6 @@
 {
   "name": "@travisbreaks/travisEATSbugs",
-  "version": "0.0.7-alpha.0",
+  "version": "0.0.9-alpha.0",
   "description": "Drop-in visual-feedback widget for any web app.",
   "license": "Apache-2.0",
   "author": "Travis Bonnet <travisbonnet@gmail.com>",
