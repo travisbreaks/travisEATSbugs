@@ -19,28 +19,29 @@ CODE.
 
 ## Canonical Brief
 
-### Current state (2026-05-20 EOD)
+### Current state (2026-05-20 late, post-colleague-send polish)
 
-- **Widget version**: `0.0.10-alpha.0` (canonical on `main`)
+- **Widget version**: `0.0.10-alpha.0` (canonical on `main` across widget + adapter-cloudflare + adapter-http + mcp-server after PR #38 aligned them)
+- **Release**: [v0.0.10-alpha.0](https://github.com/travisbreaks/travisEATSbugs/releases/tag/v0.0.10-alpha.0) tagged + GitHub Release published (prerelease flag). First tagged release on the repo.
 - **Production deployments**:
-  - Pivotal at `pivotal.travisfixes.com`: live at 0.0.7-alpha.0 (locked per D10; Cole's workflow not interrupted; bump to 0.0.10 is a follow-up only when Cole asks)
-  - Lion's Share OS at `lionsshare.travisfixes.com`: live at 0.0.3-alpha.0 (the 0.0.7 vendor bump on `docs/flag-jesse-pitch-site-2026-05-17` is now superseded by 0.0.10; LS update happens in Phase 2)
-- **Worker**: live at `eats.travisfixes.com`. D1 `travisEATSbugs` (id `9118617e-0f72-401a-82e3-f1031648cb22`). Secrets in keychain.
-  - NEW endpoint `POST /annotations/bulk` shipped 2026-05-20 (member-token only, MAX_BULK_ITEMS=200, per-item error isolation)
-- **MCP server**: NEW workspace `apps/mcp-server/` at `@travisbreaks/travisEATSbugs-mcp` 0.0.10-alpha.0. 4 tools: list_annotations, get_annotation, resolve_annotation, reopen_annotation. Configures via `TEB_API_TOKEN` + `TEB_API_URL` env vars. Wires into Claude Code via `claude mcp add teb npx @travisbreaks/travisEATSbugs-mcp`.
+  - Pivotal at `pivotal.travisfixes.com`: live at 0.0.7-alpha.0 (locked per D10; Cole's workflow not interrupted)
+  - Lion's Share OS at `lionsshare.travisfixes.com`: live at 0.0.3-alpha.0 (Phase 2 will bump)
+- **Worker**: live at `eats.travisfixes.com`. D1 `travisEATSbugs` (id `9118617e-0f72-401a-82e3-f1031648cb22`). Endpoints: `/annotations`, `/annotations/bulk` (member-token only, MAX_BULK_ITEMS=200), `/authors`, `/triage`. **Note:** does NOT serve a static `/v1.js` widget bundle; that's a v1.0 deliverable. README + docs/install.md + docs/architecture.md updated 2026-05-20 to stop promising the broken URL.
+- **MCP server**: `apps/mcp-server/` at `@travisbreaks/travisEATSbugs-mcp` 0.0.10-alpha.0. 4 tools (list_annotations, get_annotation, resolve_annotation, reopen_annotation). `claude mcp add teb npx @travisbreaks/travisEATSbugs-mcp`.
 - **Tests**: 207 green across 5 workspaces (120 widget + 23 cloudflare + 12 http + 40 worker + 12 mcp-server)
-- **CI**: branch protection ENABLED on `main` (required: build node 20 + node 22). Em-dash gate live + enforced. Strict mode (branches must be up-to-date before merge).
-- **Dependabot**: configured (weekly npm + GH Actions); 6 open PRs auto-opened on first run
-- **Secrets**: `ANTHROPIC_API_KEY` configured as CI secret (sourced from THEORIA_ANTHROPIC_API_KEY in keychain)
+- **CI**: branch protection ENABLED on `main` (required: build node 20 + node 22). Em-dash gate live + enforced. Strict mode. GH Actions baseline updated to checkout@v6 / setup-node@v6 / pnpm-action-setup@v6 / upload-artifact@v7 after dependabot merge train.
+- **Community**: CODE_OF_CONDUCT.md (Contributor Covenant 2.1) live since PR #39. Reporting channel `security@travisfixes.com` (same as SECURITY.md).
+- **Dependabot**: ungrouped after PR #39 (group rule removed; per-package PRs going forward).
+- **Issues**: 6 open, all genuinely pending: #10 admin dashboard, #12/#13/#14 two-way sync, #15 v1.0 npm release, #45 tracking issue for major dep migrations (next 16, vitest 4, happy-dom 20, wrangler 4, better-sqlite3 12)
+- **PRs**: 0 open
 
 ### Active branches
 
 | Branch | Purpose | Status |
 |---|---|---|
-| `main` | Canonical | HEAD `bf5d283` post-PR#36 |
-| `chore/thread-state-sprint-wrap-2026-05-20` | This update | (this branch) |
+| `main` | Canonical | HEAD post-PR#46 (README + docs install snippet fix) |
 
-All Phase 0 + Phase 1 sprint branches MERGED + deleted. Local repo at `main` + 1 active branch.
+All sprint + polish branches MERGED + deleted. Local repo clean on `main`.
 
 ### Strategic plan
 
@@ -174,3 +175,42 @@ competitive intel + the OSS / paid line + integration roadmap.
 - LS UI: `/pack/[client]/widget-config` + `/pack/[client]/feedback-inbox`
 - TEB worker: tenant-aware routing + auth gate (D4 magic-link token check)
 - Jesse picks pilot client + smokes end-to-end
+
+### 2026-05-20 (late, colleague-send polish sprint)
+
+**Trigger**: Travis preparing to send links (BugHerd, travisEATSbugs, travisfixes.com) to Adam Masonbrink + Rikard Arkebäck at timeglass.ai after a sales/demo meeting. Wanted everything 100% accurate and clean for an external CEO-level read.
+
+**TEB repo (travisbreaks/travisEATSbugs):**
+- PR [#37](https://github.com/travisbreaks/travisEATSbugs/pull/37) chore(memory): MERGED. Sprint wrap-up to thread-state.
+- PR [#38](https://github.com/travisbreaks/travisEATSbugs/pull/38) chore(version): MERGED. Aligned widget + adapter-cloudflare + adapter-http to 0.0.10-alpha.0 (they had drifted to 0.0.9 while MCP shipped at 0.0.10). README status line + BUGS.md + roadmap.md updated.
+- PR [#39](https://github.com/travisbreaks/travisEATSbugs/pull/39) chore(community): MERGED. CODE_OF_CONDUCT.md (Contributor Covenant 2.1, contact: security@travisfixes.com) + removed grouping rule from dependabot.yml to get per-package PRs going forward.
+- PR [#46](https://github.com/travisbreaks/travisEATSbugs/pull/46) docs: MERGED. Replaced broken install snippets in README + docs/install.md + docs/architecture.md. The old `https://eats.travisfixes.com/v1.js` URL returned 401 (worker only serves API) and `pnpm add @travisbreaks/travisEATSbugs` returned 404 (not on npm). Replaced with `<script src="https://travismakes.org/travis-eats-bugs/widget.js"></script>` which actually returns 200 + serves the IIFE bundle. Caught only on Travis's "you better be fucking sure" gate; would have shown broken install snippets to Adam on click-through from marketing.
+- Dependabot merge train: #27, #28, #29, #30 (GH Actions v6/v7 bumps) all MERGED. Workflow now uses checkout@v6 + setup-node@v6 + pnpm/action-setup@v6 + upload-artifact@v7.
+- #31, #32 group PRs: auto-closed by dependabot when ungrouping landed.
+- 5 new dependabot PRs (#40, #41, #42, #43, #44) auto-opened after ungrouping. #42 (better-sqlite3 12) initially green but went red on Node 20 after rebase against the v6/v7 actions baseline. All 5 closed; tracking issue [#45](https://github.com/travisbreaks/travisEATSbugs/issues/45) opened with per-package migration notes for next 16, vitest 4, happy-dom 20, wrangler 4, better-sqlite3 12.
+- Released v0.0.10-alpha.0 (annotated tag + GitHub Release with notes pulled from roadmap + BUGS.md, marked prerelease).
+- Closed issues #1, #2, #3, #4, #5, #6, #7, #8, #9, #11 with version-pointer comments mapping each to the roadmap section that shipped it.
+- Open-PR count: 6 -> 0. Open-issue count: 15 -> 6 (all 6 genuinely pending).
+
+**CODE repo (travisbreaks/CODE):**
+- PR [#231](https://github.com/travisbreaks/CODE/pull/231) chore(marketing): MERGED + DEPLOYED. Refresh of `travismakes-org/travis-eats-bugs/` (TEB marketing) + em-dash sweep on `travisfixes-com/` (index + about + patterns + protocol + work/livid-instruments).
+  - TEB marketing changes: fresh 0.0.10 widget bundle, hero badge "0.0.10-alpha / actively building", install snippet rewritten to use the working travismakes.org URL, three FAQs rewritten to stop describing shipped features as future, mailing copy "v1.0 ships", console `info()` + `source()` updated.
+  - travisfixes.com changes: 12 em-dashes removed (title + OG + Twitter + mailto + CSS comments). Allowed `-Travis` Credo sign-off preserved. "Currently shipping" line now leads with travisEATSbugs alongside NemoClaw + Thunder Stage + Nameless Cemetery.
+- Deploys verified live via curl after merge: travismakes.org/travis-eats-bugs/, travisfixes.com, /about, /patterns, /protocol all return 0 em-dashes.
+
+**GitHub profile (travisbreaks/travisbreaks):**
+- Pushed slim README direct to main (single commit, no PR; solo-owned repo).
+- Cut: Featured Projects table, GitHub-stats badges, Stack tags row. Kept: bio, 4 destination badges (Portfolio, Consulting, Transmissions, SoundCloud).
+- Rationale per Travis: "less is more, let the pinned repos do the showcase work."
+
+**Known follow-ups (not blocking the send):**
+- `travismakes-org/index.html` root has 3 title em-dashes (browser tab, OG, Twitter). NOT touched because the Model Guide v2 thread has uncommitted edits to that file in the CODE working tree (Claude 4.7 card refresh at lines 489+). Per `git-discipline.md` the rule against cross-thread working-tree manipulation applies. Clean up on a dedicated branch once Model Guide v2 commits.
+- `travisfixes-com/share/claude-model-guide/index.html` has 2 CSS-comment em-dashes; same Model Guide v2 cross-thread reason, also not user-visible.
+
+**Hallucination catches (the things that would have made us look bad):**
+- README + docs/install.md + docs/architecture.md were all promising a CDN URL that returns 401 and an npm package that 404s. Fixed in PR #46. Travis's explicit pre-send "you better be fucking sure" was what surfaced the docs/install.md side; the README side had been caught a few minutes earlier on the same check. Lesson: the marketing-site audit caught the broken claim there but I didn't propagate the same audit to the README and docs. Always sweep all surfaces where the claim appears, not just the most visible one.
+- The original audit included a flag on `travisfixes-com/index.html:1803` "NVIDIA NemoClaw OSS contributions" claim being possibly aspirational; Travis confirmed to leave it and add more shipped items. Added travisEATSbugs at the front of the Currently-shipping list.
+
+**Memory notes for future-self:**
+- Pre-send audits should always sweep README + docs/ alongside marketing surfaces. The same broken claim was in four places (marketing + README + install.md + architecture.md); fixing one is not fixing the rest.
+- For "polish for an external send to a CEO" work, the threshold is higher than for normal alpha-quality. Verify install snippets by actually curling them. Verify version claims across every surface. Trust nothing.
