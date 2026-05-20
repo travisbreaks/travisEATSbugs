@@ -19,15 +19,15 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 ## Versions
 
-| Version | Date | Headline |
-|---|---|---|
-| 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Pivotal's AI chat sidebar shape and the legacy PageNotesDrawer |
-| 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors |
-| 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge |
-| 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) |
-| 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) |
-| 0.0.2-alpha.0 | 2026-05-18 | Route-refresh fix (B1) |
-| 0.0.1-alpha.0 | 2026-05-14 | Initial extraction from Pivotal |
+| Version | Date | Headline | Schema requires |
+|---|---|---|---|
+| 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Pivotal's AI chat sidebar shape and the legacy PageNotesDrawer | (no new columns; UI-only) |
+| 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors | `anchor.xpath` (already present as `xpath TEXT NULL` from 0.0.1 schema; B3 hardens use of it) |
+| 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge | (no new columns) |
+| 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) | `kind TEXT CHECK ('bug'\|'feature'\|'note' NULL)` (from 0.0.3) |
+| 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) | `kind TEXT CHECK ('bug'\|'feature'\|'note' NULL)`. **Without this column, adapters silently drop kind on save.** Pivotal: mig 068. LS: pending mig 054. |
+| 0.0.2-alpha.0 | 2026-05-18 | Route-refresh fix (B1) | (no new columns) |
+| 0.0.1-alpha.0 | 2026-05-14 | Initial extraction from Pivotal | Base schema: `id`, `page_path`, `author_id`, `body`, `created_at`, `modified_at`, `state`, `resolved_pr`, `resolved_at`, `resolved_by`, `resolution_note`, `related_ids` (JSON), `dup_of`, `x_pct`, `y_pct`, `selector`, `xpath` |
 
 ## Open
 
@@ -81,7 +81,7 @@ _None tracked at the moment. Add new entries here as they come in._
 **Root cause:** Two compounding bugs.
 
 1. `@medv/finder` was selecting Tailwind utility classes as the "shortest unique selector". Stored selectors like `.items-start:nth-child(2)`, `.border:nth-child(1)`, and `.min-h-\[180px\]:nth-child(6)` match dozens of elements across a typical page because the utility classes describe styling, not identity.
-2. `resolveTarget` used `document.querySelector(selector)` which returns the FIRST match. With ambiguous selectors, that first match is almost never the intended target — yielding "anchored but wrong" pins.
+2. `resolveTarget` used `document.querySelector(selector)` which returns the FIRST match. With ambiguous selectors, that first match is almost never the intended target, yielding "anchored but wrong" pins.
 
 **Fix:**
 
@@ -96,7 +96,7 @@ _None tracked at the moment. Add new entries here as they come in._
 **Reported:** 2026-05-19 by Cole via Travis (consumer: Pivotal).
 **Symptom:** On `/` (Pivotal dashboard) Cole saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
 **Root cause:** When a pin's stored CSS selector / xpath no longer resolves on the current DOM (page has been refactored since the pin was placed), `rebuildPinViews()` fell through to the orphan-tray fallback `vx: 16, vy: 16 + N*36`, which stacked every dead-anchor pin in a column. Coupled with the new 0.0.4 per-pin kind coloring, the result was a visually prominent column of "broken" markers on every page that had drifted.
-**Fix:** Skip rendering orphan pins entirely. `if (!pin.target) continue` before creating the DOM node; CSS now also has `display: none !important` on `.teb-pin-stale` as belt-and-suspenders for the in-flight orphan case (a pin whose target was alive at mount but disappeared during the session). The drawer list view still surfaces every note for the route, so the note data isn't lost — only the on-page marker disappears. Ships in 0.0.5-alpha.0.
+**Fix:** Skip rendering orphan pins entirely. `if (!pin.target) continue` before creating the DOM node; CSS now also has `display: none !important` on `.teb-pin-stale` as belt-and-suspenders for the in-flight orphan case (a pin whose target was alive at mount but disappeared during the session). The drawer list view still surfaces every note for the route, so the note data isn't lost; only the on-page marker disappears. Ships in 0.0.5-alpha.0.
 **Consumer action:** Pivotal re-vendors 0.0.5 and redeploys.
 
 ### B1 - Sticky-note pins not page-scoped across soft navigation [0.0.2-alpha.0]

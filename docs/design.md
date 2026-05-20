@@ -14,7 +14,7 @@ travisEATSbugs is part of the Travis design family. This doc captures how the wi
 
 2. **`prefers-reduced-motion` kill switch.** MANDATORY on every animated property. The breathing glow, hover scale, drag momentum, all of it: zero on reduced motion. Already wired in `bug-mode.ts` and the playground stylesheet.
 
-3. **No em dashes.** Anywhere. Code comments, docs, copy, commit messages. Use colons, periods, parens. The one exception is the canon sign-off `—Travis` (not used in this product).
+3. **No em dashes.** Anywhere. Code comments, docs, copy, commit messages. Use colons, periods, parens. The em-dash CI gate in `.github/workflows/ci.yml` enforces this.
 
 4. **Easing:** `cubic-bezier(0.45, 0, 0.55, 1)` for ambient and hover. `cubic-bezier(0.16, 1, 0.3, 1)` for entrance reveals. 4-6s cycles on ambient motion.
 

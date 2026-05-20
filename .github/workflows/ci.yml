@@ -40,6 +40,21 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Em-dash gate. Travis design canon forbids em dashes in code, docs,
+      # copy, commit messages. See docs/design.md. Fails the build on any
+      # em-dash (U+2014) anywhere in source. Uses PCRE codepoint regex so
+      # the source of this gate itself contains no literal em-dash.
+      - name: Em-dash gate
+        run: |
+          if grep -rPn '\x{2014}' \
+            --include="*.md" --include="*.ts" --include="*.tsx" \
+            --include="*.mjs" --include="*.js" --include="*.json" \
+            --exclude-dir=node_modules --exclude-dir=.git \
+            --exclude-dir=.turbo --exclude-dir=dist .; then
+            echo "::error::Em dashes found. Replace with colon, period, or parens. See docs/design.md."
+            exit 1
+          fi
+
       - name: Build (all workspaces)
         run: pnpm -r build
 

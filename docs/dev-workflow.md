@@ -61,7 +61,7 @@ When you ship a new version, re-vendor into every consumer below.
 | Consumer | Vendor path | Repo |
 |---|---|---|
 | Pivotal | `~/code/pivotal-platform/app/vendor/` | `travisbreaks/pivotal-platform` |
-| Lion's Share | `~/code/CODE/lions-share/app-cf/vendor/` | `travisbreaks/lions-share-os` (or whichever active) |
+| Lion's Share | `~/code/lions-share/app-cf/vendor/` | `travisbreaks/lions-share-os` |
 
 (Add new consumers here as they adopt the widget.)
 

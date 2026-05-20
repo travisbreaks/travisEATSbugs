@@ -11,7 +11,7 @@ See `docs/architecture.md` for the contract this roadmap delivers against. Phase
 - [x] `docs/architecture.md`
 - [x] CI workflow
 - [x] GitHub issues per major feature
-- [ ] Branch protection (deferred; low value on solo private repo)
+- [x] Branch protection on `main` (enabled 2026-05-20, post-extraction, with two production consumers depending on the repo)
 
 ## v0.1: Widget core
 
@@ -46,19 +46,22 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 ## v0.3: Host CMS integration (drawer mode)
 
-- [ ] Reference adapter satisfying ApiAdapter + AuthAdapter + ThemeAdapter against a host CMS auth + D1 binding
-- [ ] Swap a host's existing page-notes drawer for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />`
-- [ ] Preserve the existing `page_notes` table; widget reads same schema through the adapter
-- [ ] Verify smoke suite green
-- [ ] Stage on preview deploy first, dogfood one full day, then promote
-- [ ] End-user sees no behavior change
+- [x] Reference adapter (Pivotal's `eats-bugs-adapter.ts`) satisfying ApiAdapter + AuthAdapter + ThemeAdapter against a host CMS auth + D1 binding
+- [x] Swapped Pivotal's hand-rolled `<PageNotesDrawer />` for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />` (2026-05-18 in commit 62c323f via PR #167)
+- [x] Preserved the existing `page_notes` table; widget reads same schema through the adapter
+- [x] Smoke suite green (28/28 in Pivotal)
+- [x] Staged on preview deploy first, dogfooded by Cole, then promoted
+- [x] End-user sees no behavior change
+
+**v0.3 complete** (2026-05-18): Pivotal is the canonical reference consumer at 0.0.7-alpha.0 in production.
 
 ## v0.4: Spatial-pin host integration (overlay mode)
 
-- [ ] Reference adapter for a spatial-pin consumer (skips the planned localStorage-to-D1 intermediate step; goes straight to widget adapter)
-- [ ] Swap an existing pin-annotations component for `<AnnotationWidget renderMode="overlay" headerMode="mac-chrome" adapter={hostAdapter} />`
-- [ ] Aggregator routes read via direct adapter call + injected `inferSeverity` (preserves any host-authored heuristic)
-- [ ] Per-host tinted theme via CSS custom properties (existing pattern)
+- [x] Reference adapter for a spatial-pin consumer (LS's `eats-bugs-adapter.ts`; merged via lions-share PR #60)
+- [x] Lion's Share uses `AnnotationPageMode` for click-to-pin overlay (deployed at 0.0.3-alpha.0 on lionsshare.travisfixes.com)
+- [x] Per-host tinted theme via CSS custom properties: Pivotal red `#EC2127`, LS Mane orange `#C04618`. Note: drawer + helper overlays still need full host-palette inheritance, tracked in `docs/per-host-theming-2026-05-20.md`.
+
+**v0.4 complete** (2026-05-19): LS deployed at 0.0.3-alpha.0; vendor bump to 0.0.7 sits on a docs branch pending merge + canary deploy under the Phase 2 plan.
 
 ## v0.5: Triage + capture + animation polish
 
@@ -69,6 +72,35 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 - [x] W3C Web Annotation Data Model conversion finalized: `toW3C` + `fromW3C` helpers in `packages/widget/src/w3c.ts`. Emits spec-valid JSON-LD with `@context: http://www.w3.org/ns/anno.jsonld`, `type: Annotation`, `motivation` (`commenting`, or `[commenting, assessing]` for severity=high), `TextualBody` body, `SpecificResource` target. Selector union maps cleanly: `selector` -> `CssSelector`, `xpath` -> `XPathSelector`, `textQuote` -> `TextQuoteSelector`, `viewport` -> `FragmentSelector` with pixel `xywh=`, spatial pins -> `FragmentSelector` with `xywh=percent:` conforming to W3C Media Fragments. Non-spec domain fields (state, severity, resolvedPR, triage, etc.) hang off a `teb:ext` extension block so consumers that don't know us still parse the document as a stock W3C annotation, and round-trip is lossless for consumers that do. Spec-only annotations missing `teb:ext` import cleanly with state defaulted to `open`. 16 unit tests cover round-trip + selector mapping + spec field-name conformance.
 
 **v0.5 complete** (2026-05-16): all 6 items shipped.
+
+## 0.0.2 to 0.0.7-alpha.0 sprint (2026-05-18 + 2026-05-19)
+
+Real-world Cole-driven iteration inside Pivotal. Six releases in 48 hours.
+
+- [x] **0.0.2-alpha.0** (B1): Sticky-note pins now page-scoped across soft navigation. New `route-watcher.ts` patches `history.pushState` + `replaceState` (idempotent); drawer + page-mode subscribe and re-call `refresh()` on every route change. Closed the bug where pins from `/bookings/A` rendered on top of `/bookings/B`.
+- [x] **0.0.3-alpha.0** (F1): Optional kind radios (`bug` / `feature` / `note`) + Clear button in compose UI. `AnnotationKind` type, `Annotation.kind?` field, drawer + page-mode compose rows of radio pills with state reset on submit. Adapters that ignore the field stay backwards compatible.
+- [x] **0.0.3-extra**: Re-export `AnnotationKind` from `@travisbreaks/travisEATSbugs` package root so adapter consumers (Pivotal) drop their local union duplicate.
+- [x] **0.0.4-alpha.0** (F2): Drawer kind filter pills (`All` / `Bug` / `Feature` / `Note` / `Unclassified`) with live count badges. Per-pin kind coloring on page-mode (`teb-pin-bug` red, `teb-pin-feature` blue, `teb-pin-note` slate; `teb-pin-stale` gray wins). Pin `aria-label` carries kind for screen readers.
+- [x] **0.0.5-alpha.0** (B2): Hide orphan pins entirely. Selector-no-longer-resolves pins no longer stack in a vertical column on the viewport edge. Drawer list still surfaces every note for the route.
+- [x] **0.0.6-alpha.0** (B3): Pin durability via fall-through chain (selector -> xpath -> textQuote -> viewport `elementFromPoint`). Capture-time Tailwind-utility veto prevents `@medv/finder` from picking ambiguous utility-class selectors. `resolveTargetForAnchor()` returns `{ target, via }` so future host code can auto-heal anchors.
+- [x] **0.0.7-alpha.0** (F3): Right-rail drawer layout option (`layout: 'right-rail'`) matching Pivotal's AI chat sidebar shape and the legacy `PageNotesDrawer`. New options: `railWidth`, `backdrop`. Floating layout unchanged (backwards compatible). Slide-in animation, left border + leftward drop shadow.
+
+## Work-in-flight design docs (toward 0.0.8+)
+
+These are captured Pivotal-side patterns + new strategic requirements that have not yet landed in canonical TEB. They guide the next releases.
+
+- **`docs/per-host-theming-2026-05-20.md`**: drawer + helper overlays don't inherit host palette like the button does. Convert hardcoded colors in `drawer.ts` (and `bug-mode.ts`, `page-mode.ts`, `overlay.ts`) to CSS custom properties (`--teb-surface-1`, `--teb-surface-2`, `--teb-muted`, etc.). Estimated 5hr; targets 0.0.8-alpha.
+- **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. Cole files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
+- **`docs/client-facing-tenancy.md`**: Phase A6 multi-tenant pilot for LSD. Ratified decisions D1-D4 baked into doc. Per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning (LS = canary), auth-gated production widget (no random visitor sees zero).
+
+## v0.8 and beyond (TEB OSS uplift per Phase 1 of the strategic plan)
+
+Upstream Pivotal innovations not yet in canonical TEB. See `~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md` for the full sequenced plan.
+
+- **0.0.8**: bug-button + mode-picker config (positioning, animation, modes array, `onModeChange`). Hint ribbon offset config.
+- **0.0.9**: anchor rehydration built into widget default capture (selector + xpath on `Annotation.anchor`). `relatedIds` + `dupOf` as first-class fields.
+- **0.0.10**: `onMutate` adapter hook for host audit unification. Bulk ingest endpoint at canonical worker.
+- **0.0.11**: TEB MCP server (public-credibility marker). BugHerd MCP is "coming soon"; we ship a working one first.
 
 ## v0.6: Integrations (formerly v0.5)
 
