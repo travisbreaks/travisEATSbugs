@@ -11,23 +11,42 @@
 
 ## Install
 
-CDN:
+Pre-1.0. A dedicated CDN endpoint and a public npm publish both land at v1.0. Until then, two paths that work today:
+
+### Script tag (alpha demo)
+
+Drop in the same bundle the live demo uses, served from the travismakes.org static site:
 
 ```html
-<script src="https://eats.travisfixes.com/v1.js" data-project="YOUR_PROJECT_TOKEN"></script>
+<script src="https://travismakes.org/travis-eats-bugs/widget.js"></script>
 ```
 
-npm / pnpm / yarn:
+The bundle exposes `window.travisEATSbugs`. Wire it up:
+
+```html
+<script>
+  const api = new window.travisEATSbugs.LocalStorageAdapter({ namespace: 'my-app' })
+  const pageMode = new window.travisEATSbugs.AnnotationPageMode({ api })
+  pageMode.mount()
+  window.travisEATSbugs.init({
+    onToggle: (active) => active ? pageMode.activate() : pageMode.deactivate(),
+  })
+</script>
+```
+
+### Vendor from the repo
+
+For production use, clone, build, and serve the bundle from your own CDN:
 
 ```bash
-pnpm add @travisbreaks/travisEATSbugs
+git clone https://github.com/travisbreaks/travisEATSbugs.git
+cd travisEATSbugs
+pnpm install
+pnpm --filter @travisbreaks/travisEATSbugs run build
+# packages/widget/dist/index.global.js is the IIFE bundle
 ```
 
-```ts
-import { init } from '@travisbreaks/travisEATSbugs'
-
-init({ project: 'YOUR_PROJECT_TOKEN' })
-```
+Swap the `LocalStorageAdapter` for `@travisbreaks/travisEATSbugs-cloudflare` (D1-backed) or `@travisbreaks/travisEATSbugs-http` (any REST endpoint) when you're ready to persist beyond the visitor's browser. See [docs/install.md](docs/install.md) for the full walkthrough.
 
 ## What it does
 

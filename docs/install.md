@@ -1,69 +1,105 @@
 # Installing travisEATSbugs
 
-**Status:** v0 scaffold. The instructions below describe the v0.1+ target install paths.
+**Status:** alpha (`0.0.10-alpha.0`). A dedicated CDN endpoint and a public npm publish both land at v1.0. Until then, the install paths below are how to drop the widget into a real app today.
 
-## Option 1: CDN snippet (recommended for most users)
+## Option 1: Script tag (alpha demo)
 
-Add one line to your HTML `<head>`:
+Drop in the same bundle the [live demo](https://travismakes.org/travis-eats-bugs/) uses, served from the travismakes.org static site:
 
 ```html
-<script src="https://eats.travisfixes.com/v1.js" data-project="YOUR_PROJECT_TOKEN"></script>
+<script src="https://travismakes.org/travis-eats-bugs/widget.js"></script>
 ```
 
-That's it. The widget injects a floating bug icon in the bottom-right of every page. Click it to enter mark mode.
+The bundle exposes `window.travisEATSbugs`. Wire it up with the localStorage adapter (browser-only, no backend needed):
 
-## Option 2: npm package
+```html
+<script>
+  const api = new window.travisEATSbugs.LocalStorageAdapter({
+    namespace: 'my-app-feedback',
+    currentUser: { id: 'demo-visitor', display: 'You' },
+  })
+  const pageMode = new window.travisEATSbugs.AnnotationPageMode({
+    api,
+    hintText: 'Click any element on this page to drop a note',
+  })
+  pageMode.mount()
+  window.travisEATSbugs.init({
+    onToggle: (active) => active ? pageMode.activate() : pageMode.deactivate(),
+  })
+</script>
+```
 
-If your app is JS-bundled (React, Vue, Svelte, Solid, etc):
+Good for prototypes, demos, internal-only feedback flows. Notes live in the visitor's browser; nothing leaves their machine.
+
+## Option 2: Vendor the bundle from the repo
+
+For production use, clone the repo, build the widget, and serve the bundle from your own CDN:
 
 ```bash
-pnpm add @travisbreaks/travisEATSbugs
+git clone https://github.com/travisbreaks/travisEATSbugs.git
+cd travisEATSbugs
+pnpm install
+pnpm --filter @travisbreaks/travisEATSbugs run build
+```
+
+The IIFE bundle lands at `packages/widget/dist/index.global.js`. Drop it into your asset pipeline (`/static/`, an R2 bucket, your own CDN, whatever).
+
+## Option 3: Vendor the workspace as a pnpm dependency
+
+If your app is JS-bundled (React, Vue, Svelte, Solid, etc), you can vendor the widget package directly while waiting for the public npm publish. From your app:
+
+```bash
+pnpm pack /path/to/travisEATSbugs/packages/widget
+pnpm add ./travisbreaks-travisEATSbugs-0.0.10-alpha.0.tgz
 ```
 
 Then in your app entry point:
 
 ```ts
-import { init } from '@travisbreaks/travisEATSbugs'
+import { init, AnnotationPageMode, LocalStorageAdapter } from '@travisbreaks/travisEATSbugs'
 
-init({
-  project: 'YOUR_PROJECT_TOKEN',
-  position: 'bottom-right', // optional
-})
+const api = new LocalStorageAdapter({ namespace: 'my-app' })
+const pageMode = new AnnotationPageMode({ api })
+pageMode.mount()
+init({ onToggle: (active) => active ? pageMode.activate() : pageMode.deactivate() })
 ```
 
-## Option 3: Self-hosted backend
+## Option 4: Self-hosted Cloudflare worker + D1
 
-If you want full control of where comments are stored, use the HTTP adapter:
-
-```ts
-import { init } from '@travisbreaks/travisEATSbugs'
-import { httpAdapter } from '@travisbreaks/travisEATSbugs-http'
-
-init({
-  adapter: httpAdapter({
-    baseUrl: 'https://your-app.com/api/feedback',
-    headers: { Authorization: `Bearer ${token}` },
-  }),
-})
-```
-
-Your endpoint needs to implement the [Adapter interface](./architecture.md#store-pluggable-adapter).
-
-## Option 4: Self-hosted on Cloudflare
-
-If you want our backend topology but on your own Cloudflare account, deploy the worker package:
+For a persistent backend with full multi-user CRUD + AI triage, deploy the worker package to your own Cloudflare account:
 
 ```bash
 git clone https://github.com/travisbreaks/travisEATSbugs.git
 cd travisEATSbugs/apps/worker
 pnpm install
+# Configure wrangler.toml with your D1 binding and secrets
 pnpm wrangler deploy
 ```
 
-Then point the widget at your worker URL.
+Point the widget at your worker by swapping the adapter:
 
-## Getting a project token
+```ts
+import { httpAdapter } from '@travisbreaks/travisEATSbugs-http'
+import { init } from '@travisbreaks/travisEATSbugs'
 
-For the hosted backend (Option 1 or 2 without a custom adapter), sign up at [eats.travisfixes.com](https://eats.travisfixes.com) and create a project. The dashboard shows your token.
+const api = httpAdapter({
+  baseUrl: 'https://your-worker.your-subdomain.workers.dev',
+  headers: { Authorization: `Bearer ${process.env.MEMBER_TOKEN}` },
+})
+init({ adapter: api, ... })
+```
 
-For self-hosted (Options 3 or 4), the token is whatever string you want; the widget passes it through unchanged.
+The worker exposes `/annotations`, `/annotations/bulk`, `/authors`, and `/triage` (opt-in AI classification via `ANTHROPIC_API_KEY`). See [architecture.md](./architecture.md) for the full data model and adapter contracts.
+
+## What about the hosted backend at `eats.travisfixes.com`?
+
+The Cloudflare worker that backs the maintainer's own deployments is live at `https://eats.travisfixes.com`. It is **not a public signup destination** today. The route surface is the same as Option 4 (you'd authenticate with a member token and call the same endpoints), but member token provisioning is a manual step out-of-band. A signup UI + public hosted tier land in the paid `teb-cloud` repo, not in this OSS repo.
+
+## Picking between options
+
+| If you want to... | Use option |
+|---|---|
+| Try the widget on your site in 60 seconds with no backend | 1 (script tag + localStorage) |
+| Ship the widget on a production site with your own CDN | 2 (vendor the bundle) |
+| Use the widget inside a JS-bundled app (React/Vue/etc) | 3 (pnpm pack + vendor) |
+| Run the full hosted-backend topology on your own Cloudflare | 4 (self-hosted worker) |

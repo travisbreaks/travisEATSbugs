@@ -24,19 +24,21 @@ No existing tool ships visual feedback + agency project rollups + hours tracking
 
 ## Core architecture
 
-### Widget delivery: snippet + npm
+### Widget delivery: script tag + vendored package
 
-Two install paths:
+Pre-1.0 install paths (see [install.md](./install.md) for the full walkthrough):
 
-1. **One-line CDN snippet:**
+1. **Script tag (alpha demo):**
    ```html
-   <script src="https://eats.travisfixes.com/v1.js" data-project="YOUR_TOKEN"></script>
+   <script src="https://travismakes.org/travis-eats-bugs/widget.js"></script>
    ```
-2. **npm package:**
+2. **Vendored package:**
    ```ts
    import { init } from '@travisbreaks/travisEATSbugs'
-   init({ project: 'YOUR_TOKEN' })
+   init({ /* opts */ })
    ```
+
+A dedicated CDN endpoint (e.g. `eats.travisfixes.com/v1.js`) and a public npm publish both land at v1.0; see the strategic plan for the bundle-versioning + tenant-pin design.
 
 ### Style isolation: Shadow DOM
 
