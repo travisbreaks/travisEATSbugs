@@ -2,7 +2,7 @@
  * Environment metadata capture (page-mode "Additional Info" payload).
  *
  * Mirrors the BugHerd "Additional Info" panel: URL, OS, browser + version,
- * selector (the clicked element's CSS path — comes from anchor-route), screen
+ * selector (the clicked element's CSS path, sourced from anchor-route), screen
  * resolution, browser window size, color depth, plus a couple of extras
  * (device pixel ratio, language, page title, referrer, viewport) that are
  * trivial to grab and useful for triage.

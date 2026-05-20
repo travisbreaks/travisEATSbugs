@@ -2,13 +2,12 @@
 
 [![CI](https://github.com/travisbreaks/travisEATSbugs/actions/workflows/ci.yml/badge.svg)](https://github.com/travisbreaks/travisEATSbugs/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
-[![npm](https://img.shields.io/npm/v/@travisbreaks/travisEATSbugs.svg)](https://www.npmjs.com/package/@travisbreaks/travisEATSbugs)
 
 > Drop-in visual-feedback widget for any web app. Click anywhere on a page, leave a sticky-note comment anchored to the clicked element, ship the fix. Open source, self-hostable, no logins or Jira required.
 
-**Live demo:** [travismakes.org/travis-eats-bugs/](https://travismakes.org/travis-eats-bugs/) — the marketing page itself is the playground. Click the bug button bottom-right.
+**Live demo:** [travismakes.org/travis-eats-bugs/](https://travismakes.org/travis-eats-bugs/). The marketing page itself is the playground. Click the bug button bottom-right.
 
-**Status:** alpha (`0.0.1-alpha.0`). API surface is stabilizing.
+**Status:** alpha (`0.0.7-alpha.0`). API surface is stabilizing. Public npm publish lands at v1.0.0.
 
 ## Install
 
@@ -55,8 +54,8 @@ Three layers, three adapter contracts:
 | Theming | `ThemeAdapter` | Per-host display labels, button copy, severity inference. |
 
 Reference adapters in this repo:
-- `@travisbreaks/travisEATSbugs-cloudflare` — D1-backed with full CRUD + audit log
-- `@travisbreaks/travisEATSbugs-http` — fetch-backed REST adapter
+- `@travisbreaks/travisEATSbugs-cloudflare`: D1-backed with full CRUD + audit log
+- `@travisbreaks/travisEATSbugs-http`: fetch-backed REST adapter
 - In-memory + localStorage adapters for prototyping (built into the widget package)
 
 See [docs/architecture.md](docs/architecture.md) for the full data model + anchor schema.
@@ -71,11 +70,11 @@ See [docs/architecture.md](docs/architecture.md) for the full data model + ancho
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — data model, anchor schema, adapter contracts
-- [Design](docs/design.md) — theming, no-shift principle, reduced-motion, brand canon
-- [Implementation guide](docs/implementation-guide.md) — adapter writing walkthrough
-- [Install](docs/install.md) — CDN, npm, self-hosted worker
-- [Roadmap](docs/roadmap.md) — what's shipped, what's queued
+- [Architecture](docs/architecture.md): data model, anchor schema, adapter contracts
+- [Design](docs/design.md): theming, no-shift principle, reduced-motion, brand canon
+- [Implementation guide](docs/implementation-guide.md): adapter writing walkthrough
+- [Install](docs/install.md): CDN, npm, self-hosted worker
+- [Roadmap](docs/roadmap.md): what's shipped, what's queued
 
 ## Contributing
 

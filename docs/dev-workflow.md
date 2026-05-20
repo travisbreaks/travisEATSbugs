@@ -61,7 +61,7 @@ When you ship a new version, re-vendor into every consumer below.
 | Consumer | Vendor path | Repo |
 |---|---|---|
 | Host A | `<host-a repo>/vendor/` | private repo |
-| Host B | `~/code/CODE/host-b/app-cf/vendor/` | `travisbreaks/host-b` (or whichever active) |
+| Host B | `<host-b repo>/vendor/` | private repo |
 
 (Add new consumers here as they adopt the widget.)
 

@@ -36,7 +36,7 @@ const HOST_ID = 'travisEATSbugs-page-host'
 const ATTR_PIN = 'data-teb-pin'
 const ATTR_HOST = 'data-teb-page-host'
 /** The floating bug-button's shadow host. Page mode must NEVER intercept a
- * click on it — that would make the button impossible to use as the disarm
+ * click on it; that would make the button impossible to use as the disarm
  * gesture. See bug-mode.ts HOST_ID. */
 const BUG_BUTTON_HOST_ID = 'travisEATSbugs-host'
 
@@ -1083,7 +1083,7 @@ const STYLE_TEXT = `
  * vertically on the left edge as gray circles, which read as broken on any
  * page that's been refactored since the pins were dropped. Hide them outright.
  * The drawer-list view still surfaces every note for the route regardless of
- * anchor resolution, so the data isn't lost — only the on-page pin marker
+ * anchor resolution, so the data isn't lost. Only the on-page pin marker
  * disappears when its target is gone. */
 .teb-pin-stale {
   display: none !important;
