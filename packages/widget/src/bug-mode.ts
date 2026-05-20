@@ -16,9 +16,51 @@
  * store adapter, AI triage webhook.
  */
 
+export type BugButtonPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+
+/**
+ * Explicit pixel offsets for the bug button. Any combination of edges may
+ * be set; unset edges fall back to the `position` corner preset. Useful when
+ * the host page has its own floating launcher (chat widget, AI sidebar) and
+ * the bug button needs to sit beside it instead of in the page corner.
+ */
+export interface BugButtonOffset {
+  right?: number
+  bottom?: number
+  top?: number
+  left?: number
+}
+
+/**
+ * Ambient animation mode.
+ *
+ * - 'wiggle' (default): breathing glow + sticky-note wiggle. The
+ *   travisEATSbugs canonical animation. Attention-grabbing.
+ * - 'minimal': breathing glow only, no wiggle. Subtle.
+ * - 'none': no ambient motion. For hosts that want a static button.
+ *
+ * All variants respect prefers-reduced-motion automatically.
+ */
+export type BugButtonAnimation = 'wiggle' | 'minimal' | 'none'
+
 export interface InitOptions {
   project?: string
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  position?: BugButtonPosition
+  /**
+   * Explicit pixel offsets that override the `position` corner preset.
+   * Pass e.g. `{ right: 88, bottom: 24 }` to anchor the button 88px from
+   * the right edge instead of the default 22px. Edges not specified fall
+   * back to the corner preset.
+   */
+  offset?: BugButtonOffset
+  /**
+   * Button size in pixels. Overrides the default 48px and disables the
+   * 52px mobile-viewport bump. Useful when matching a host launcher's
+   * size exactly. Minimum 44px enforced for touch-target accessibility.
+   */
+  size?: number
+  /** Ambient animation mode. Defaults to `'wiggle'`. */
+  animation?: BugButtonAnimation
   /**
    * Fired on every click of the floating bug button, after the internal
    * active state flips. Closes the "consumer wires this manually for v0.1"
@@ -51,14 +93,55 @@ function buildButton(): HTMLButtonElement {
   return btn
 }
 
-function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleElement {
-  const style = document.createElement('style')
-  const offsets: Record<typeof position, string> = {
-    'bottom-right': 'bottom: var(--teb-offset); right: var(--teb-offset);',
-    'bottom-left': 'bottom: var(--teb-offset); left: var(--teb-offset);',
-    'top-right': 'top: var(--teb-offset); right: var(--teb-offset);',
-    'top-left': 'top: var(--teb-offset); left: var(--teb-offset);',
+/**
+ * Compose the button-position CSS. Corner preset is the fallback; any
+ * explicit `offset` edges override the preset on a per-edge basis.
+ */
+function composeOffsetCss(position: BugButtonPosition, offset?: BugButtonOffset): string {
+  const preset: Record<
+    BugButtonPosition,
+    { vertical: 'top' | 'bottom'; horizontal: 'left' | 'right' }
+  > = {
+    'bottom-right': { vertical: 'bottom', horizontal: 'right' },
+    'bottom-left': { vertical: 'bottom', horizontal: 'left' },
+    'top-right': { vertical: 'top', horizontal: 'right' },
+    'top-left': { vertical: 'top', horizontal: 'left' },
   }
+  const { vertical, horizontal } = preset[position]
+  const rules: string[] = []
+  // Explicit values win; otherwise fall back to the corner preset var.
+  if (typeof offset?.top === 'number') rules.push(`top: ${offset.top}px;`)
+  else if (vertical === 'top') rules.push('top: var(--teb-offset);')
+  if (typeof offset?.bottom === 'number') rules.push(`bottom: ${offset.bottom}px;`)
+  else if (vertical === 'bottom') rules.push('bottom: var(--teb-offset);')
+  if (typeof offset?.left === 'number') rules.push(`left: ${offset.left}px;`)
+  else if (horizontal === 'left') rules.push('left: var(--teb-offset);')
+  if (typeof offset?.right === 'number') rules.push(`right: ${offset.right}px;`)
+  else if (horizontal === 'right') rules.push('right: var(--teb-offset);')
+  return rules.join('\n      ')
+}
+
+function buildStyles(
+  options: Required<Pick<InitOptions, 'position' | 'animation'>> &
+    Pick<InitOptions, 'offset' | 'size'>,
+): HTMLStyleElement {
+  const style = document.createElement('style')
+  const positionCss = composeOffsetCss(options.position, options.offset)
+  // Explicit size overrides both desktop default (48px) and mobile bump (52px).
+  // Enforce 44px touch-target minimum per design canon §accessibility.
+  const explicitSize = typeof options.size === 'number' ? Math.max(44, options.size) : null
+  const sizeOverride = explicitSize !== null ? `--teb-size: ${explicitSize}px;` : ''
+  const mobileSizeOverride = explicitSize !== null ? '' : '--teb-size: 52px;'
+  // Animation modes: 'wiggle' = breathing + sticky (canonical),
+  // 'minimal' = breathing only, 'none' = no ambient motion.
+  const buttonAnimation =
+    options.animation === 'none'
+      ? 'animation: none;'
+      : 'animation: teb-breathe 5400ms var(--teb-ease) infinite;'
+  const markAnimation =
+    options.animation === 'wiggle'
+      ? 'animation: teb-sticky 4800ms var(--teb-ease) infinite;'
+      : 'animation: none;'
   style.textContent = `
     :host {
       /* Theme tokens. Host pages override via :root or body custom properties. */
@@ -79,13 +162,17 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
     @media (max-width: 640px) {
       :host {
         --teb-offset: 18px;
-        --teb-size: 52px;
+        ${mobileSizeOverride}
       }
+    }
+
+    :host {
+      ${sizeOverride}
     }
 
     button {
       position: fixed;
-      ${offsets[position]}
+      ${positionCss}
       z-index: var(--teb-z);
       width: var(--teb-size);
       height: var(--teb-size);
@@ -108,7 +195,7 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       isolation: isolate;
-      animation: teb-breathe 5400ms var(--teb-ease) infinite;
+      ${buttonAnimation}
     }
 
     /* Electric pulse ring: radial gradient pseudo-element, dormant
@@ -142,7 +229,7 @@ function buildStyles(position: NonNullable<InitOptions['position']>): HTMLStyleE
       align-items: center;
       justify-content: center;
       transform-origin: 50% 60%;
-      animation: teb-sticky 4800ms var(--teb-ease) infinite;
+      ${markAnimation}
       will-change: transform;
     }
 
@@ -257,11 +344,19 @@ export function init(options: InitOptions = {}): void {
     return
   }
   const position = options.position ?? 'bottom-right'
+  const animation = options.animation ?? 'wiggle'
   onToggleHandler = options.onToggle ?? null
   hostElement = document.createElement('div')
   hostElement.id = HOST_ID
   shadowRoot = hostElement.attachShadow({ mode: 'open' })
-  shadowRoot.appendChild(buildStyles(position))
+  shadowRoot.appendChild(
+    buildStyles({
+      position,
+      animation,
+      offset: options.offset,
+      size: options.size,
+    }),
+  )
   const btn = buildButton()
   btn.addEventListener('click', toggle)
   shadowRoot.appendChild(btn)
