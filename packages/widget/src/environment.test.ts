@@ -104,7 +104,7 @@ describe('captureEnvironment', () => {
 
   it('returns null in non-browser contexts', () => {
     // Simulate SSR: stash window globally, blank it out, restore. Setting
-    // to undefined is not equivalent here — captureEnvironment checks
+    // to undefined is not equivalent here: captureEnvironment checks
     // `typeof window === 'undefined'`, which is true for both a literal
     // delete AND for `= undefined`, so either works. Using `= undefined`
     // satisfies biome's noDelete rule.
