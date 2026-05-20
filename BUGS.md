@@ -21,6 +21,9 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 
 | Version | Date | Headline | Schema requires |
 |---|---|---|---|
+| 0.0.10-alpha.0 | 2026-05-20 | Version alignment: widget + adapter-cloudflare + adapter-http brought to 0.0.10 to match the canonical MCP server version. MCP server (`apps/mcp-server/`) ships as a new public package: 4 tools (`list_annotations`, `get_annotation`, `resolve_annotation`, `reopen_annotation`) over stdio. No widget or adapter API surface change in this bump. | (no new columns) |
+| 0.0.9-alpha.0 | 2026-05-20 | Worker bulk ingest endpoint (`POST /annotations/bulk`): member-token only, MAX_BULK_ITEMS=200, per-item error isolation. Brain-dump ingest path is now a public API. Widget version bumped as a release marker; no widget schema change. | (no new columns) |
+| 0.0.8-alpha.0 | 2026-05-20 | Bug-button + hint-ribbon config: floating bug button position / size / animation modes are now options; hint ribbon offset is configurable. Four Pivotal shadow-DOM workarounds upstreamed into canonical TEB. | (no new columns) |
 | 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Pivotal's AI chat sidebar shape and the legacy PageNotesDrawer | (no new columns; UI-only) |
 | 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors | `anchor.xpath` (already present as `xpath TEXT NULL` from 0.0.1 schema; B3 hardens use of it) |
 | 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge | (no new columns) |
