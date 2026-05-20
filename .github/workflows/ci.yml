@@ -28,7 +28,7 @@ jobs:
         node-version: [20, 22]
     name: build (node ${{ matrix.node-version }})
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
 
