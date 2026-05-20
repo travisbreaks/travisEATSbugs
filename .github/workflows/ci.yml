@@ -72,7 +72,7 @@ jobs:
       # Only upload from the Node 22 matrix slot to avoid duplicate artifacts.
       - name: Upload widget dist
         if: matrix.node-version == 22
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: widget-dist
           path: packages/widget/dist
