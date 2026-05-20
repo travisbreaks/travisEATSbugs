@@ -859,6 +859,49 @@ describe('AnnotationPageMode kind badges', () => {
   })
 })
 
+describe('AnnotationPageMode hint ribbon offset (0.0.8)', () => {
+  it('defaults: no inline custom properties on the host (stylesheet defaults win)', () => {
+    const api = new MemoryAdapter()
+    const page = new AnnotationPageMode({ api })
+    page.mount()
+    const host = document.getElementById('travisEATSbugs-page-host') as HTMLElement | null
+    expect(host).not.toBeNull()
+    expect(host?.style.getPropertyValue('--teb-hint-right')).toBe('')
+    expect(host?.style.getPropertyValue('--teb-hint-bottom')).toBe('')
+    page.destroy()
+  })
+
+  it('hintRibbon.right sets the --teb-hint-right custom property in px', () => {
+    const api = new MemoryAdapter()
+    const page = new AnnotationPageMode({ api, hintRibbon: { right: 88 } })
+    page.mount()
+    const host = document.getElementById('travisEATSbugs-page-host') as HTMLElement | null
+    expect(host?.style.getPropertyValue('--teb-hint-right')).toBe('88px')
+    expect(host?.style.getPropertyValue('--teb-hint-bottom')).toBe('')
+    page.destroy()
+  })
+
+  it('hintRibbon.bottom sets the --teb-hint-bottom custom property in px', () => {
+    const api = new MemoryAdapter()
+    const page = new AnnotationPageMode({ api, hintRibbon: { bottom: 120 } })
+    page.mount()
+    const host = document.getElementById('travisEATSbugs-page-host') as HTMLElement | null
+    expect(host?.style.getPropertyValue('--teb-hint-bottom')).toBe('120px')
+    expect(host?.style.getPropertyValue('--teb-hint-right')).toBe('')
+    page.destroy()
+  })
+
+  it('hintRibbon both edges sets both custom properties', () => {
+    const api = new MemoryAdapter()
+    const page = new AnnotationPageMode({ api, hintRibbon: { right: 88, bottom: 120 } })
+    page.mount()
+    const host = document.getElementById('travisEATSbugs-page-host') as HTMLElement | null
+    expect(host?.style.getPropertyValue('--teb-hint-right')).toBe('88px')
+    expect(host?.style.getPropertyValue('--teb-hint-bottom')).toBe('120px')
+    page.destroy()
+  })
+})
+
 describe('AnnotationWidget (overlay mode)', () => {
   it('mounts in overlay mode with a memory adapter', () => {
     const surface = document.createElement('div')

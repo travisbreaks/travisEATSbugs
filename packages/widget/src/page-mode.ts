@@ -68,6 +68,14 @@ export type PageModeOpts = {
   showHint?: boolean
   /** Hint copy. Default: "Click any element to drop a note." */
   hintText?: string
+  /**
+   * Pixel offsets for the hint ribbon. Defaults to `{ right: 22, bottom: 84 }`,
+   * which sits above the bug button when it's in the default bottom-right
+   * corner. Override when the host's bug button is positioned somewhere else
+   * (e.g. when a host AI sidebar already occupies the corner and the bug
+   * button is shifted left, pass `{ right: 88 }` so the hint follows it).
+   */
+  hintRibbon?: { right?: number; bottom?: number }
 }
 
 type PinView = {
@@ -121,6 +129,16 @@ export class AnnotationPageMode {
     this.host = document.createElement('div')
     this.host.id = HOST_ID
     this.host.setAttribute(ATTR_HOST, '')
+    // Optional per-host hint-ribbon offset. Applied as CSS custom properties
+    // on the host so the shadow-DOM stylesheet picks them up via var(--...).
+    // The stylesheet provides defaults (84px bottom, 22px right) when these
+    // vars are unset.
+    if (typeof this.opts.hintRibbon?.right === 'number') {
+      this.host.style.setProperty('--teb-hint-right', `${this.opts.hintRibbon.right}px`)
+    }
+    if (typeof this.opts.hintRibbon?.bottom === 'number') {
+      this.host.style.setProperty('--teb-hint-bottom', `${this.opts.hintRibbon.bottom}px`)
+    }
     this.shadow = this.host.attachShadow({ mode: 'open' })
     this.shadow.appendChild(this.buildStyles())
     const root = document.createElement('div')
@@ -991,8 +1009,8 @@ const STYLE_TEXT = `
 
 .teb-hint {
   position: fixed;
-  bottom: 84px;
-  right: 22px;
+  bottom: var(--teb-hint-bottom, 84px);
+  right: var(--teb-hint-right, 22px);
   background: #0c0908;
   color: #fcf6ec;
   padding: 8px 14px;
