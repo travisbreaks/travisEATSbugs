@@ -45,7 +45,7 @@
     "lint": "biome check src"
   },
   "dependencies": {
-    "@medv/finder": "^3.2.0",
+    "@medv/finder": "^4.0.2",
     "modern-screenshot": "^4.5.0"
   },
   "devDependencies": {
