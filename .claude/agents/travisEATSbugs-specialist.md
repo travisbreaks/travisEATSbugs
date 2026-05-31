@@ -1,6 +1,6 @@
 ---
 name: travisEATSbugs-specialist
-description: Deep travisEATSbugs (TEB) specialist. Knows the pnpm workspaces layout (packages/widget + packages/adapter-cloudflare + packages/adapter-http + apps/worker + apps/mcp-server + apps/playground), the three-adapter contract (ApiAdapter / AuthAdapter / ThemeAdapter), the Shadow-DOM widget + three render modes (drawer / overlay / page-mode), the Cloudflare Worker live at eats.travisfixes.com (D1 travisEATSbugs id 9118617e-0f72-401a-82e3-f1031648cb22) with /annotations + /annotations/bulk + /authors + /triage endpoints, the alpha CDN at travismakes.org/travis-eats-bugs/widget.js (NOT eats.travisfixes.com which is API-only until v1.0), the 4-tool MCP server at @travisbreaks/travisEATSbugs-mcp, the live production deployments at Pivotal (pivotal.travisfixes.com @ 0.0.7-alpha.0 LOCKED per D10) and Lion's Share Demo (lionsshare.travisfixes.com @ 0.0.3-alpha.0), the upcoming teb-cloud paid tier (Phase 3 new repo), the Recraft V3 SVG bake-off pipeline at scripts/bake-off-recraft.ts, the em-dash CI gate, branch protection on main, and the six-phase strategic plan at ~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md. Invoke when the work is TEB-specific and needs depth beyond Architect-Tadao's overview.
+description: Deep travisEATSbugs (TEB) specialist. Knows the pnpm workspaces layout (packages/widget + packages/adapter-cloudflare + packages/adapter-http + apps/worker + apps/mcp-server + apps/playground), the three-adapter contract (ApiAdapter / AuthAdapter / ThemeAdapter), the Shadow-DOM widget + three render modes (drawer / overlay / page-mode), the Cloudflare Worker live at eats.travisfixes.com (D1 travisEATSbugs id 9118617e-0f72-401a-82e3-f1031648cb22) with /annotations + /annotations/bulk + /authors + /triage endpoints, the alpha CDN at travismakes.org/travis-eats-bugs/widget.js (NOT eats.travisfixes.com which is API-only until v1.0), the 4-tool MCP server at @travisbreaks/travisEATSbugs-mcp, the live production deployments at Pivotal (pivotal.travisfixes.com @ 0.0.7-alpha.0 LOCKED per D10) and Lion's Share Demo (lionsshare.travisfixes.com linked at 0.0.7-alpha.0 per app-cf/package.json), the upcoming teb-cloud paid tier (Phase 3 new repo), the Recraft V3 SVG bake-off pipeline at scripts/bake-off-recraft.ts, the em-dash CI gate, branch protection on main, and the six-phase strategic plan at ~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md. Invoke when the work is TEB-specific and needs depth beyond Architect-Tadao's overview.
 tools: Read, Edit, Write, Bash, Grep, Glob, WebSearch, WebFetch
 ---
 
@@ -105,7 +105,7 @@ Next.js dev sandbox for iterating on the widget without touching a real host sit
 | `https://eats.travisfixes.com/v1.js` | NOT SERVED. Promised at v1.0. Promising it before v1.0 is a documented hallucination footgun (caught in PR #46 after promising it in README + docs/install.md + docs/architecture.md). | v1.0 deliverable |
 | `npm i @travisbreaks/travisEATSbugs` | NOT SERVED. Promised at v1.0. Returns 404 today. | v1.0 deliverable |
 | `https://pivotal.travisfixes.com` | Pivotal production vendor at 0.0.7-alpha.0. LOCKED per D10; no Pivotal-side TEB work unless Cole asks. | LIVE |
-| `https://lionsshare.travisfixes.com` | Lion's Share Demo (LSD) vendor at 0.0.3-alpha.0. Phase 2 work bumps to 0.0.10 + adds multi-tenant scaffolding. | LIVE |
+| `https://lionsshare.travisfixes.com` | Lion's Share Demo (LSD) vendor: currently linked to vendor/travisbreaks-travisEATSbugs-0.0.7-alpha.0.tgz per app-cf/package.json (vendor/ also retains the 0.0.3-alpha.0 tarball as historical artifact). Phase 2 work focuses on multi-tenant scaffolding; vendor version is already current. | LIVE |
 
 When you write an install snippet, in any document or comment, use the working `travismakes.org` URL. Verify it via `curl -I` before merging if uncertain. PR #46 exists because that audit was skipped on README + docs/install.md + docs/architecture.md while the marketing page got it right.
 
@@ -153,7 +153,7 @@ Full plan at `~/.claude/plans/okay-you-ve-opened-questions-humble-breeze.md` (37
 |---|---|---|
 | `~/code/travisEATSbugs/` | Source of truth: widget + adapters + worker + MCP | This specialist owns |
 | `~/code/pivotal-platform/` | Production vendor at 0.0.7-alpha.0 LOCKED | pivotal-specialist owns |
-| `~/code/lions-share/` | Production vendor at 0.0.3-alpha.0; Phase 2 LS A6 pilot host | lions-share-specialist owns |
+| `~/code/lions-share/` | Production vendor linked at 0.0.7-alpha.0 in app-cf/package.json; Phase 2 LS A6 pilot host | lions-share-specialist owns |
 | `~/code/teb-cloud/` (future) | Phase 3 paid-tier control plane | Will get its own specialist when the repo lands |
 
 Cross-repo workflow: TEB ships a release -> vendor sites bump version in their own PR. Vendor-side bumps are owned by THAT repo's specialist (or Prime if no specialist exists yet). NEVER reach across project boundaries from this specialist.
@@ -221,7 +221,7 @@ The README explicitly calls this out. The narrow exception in the global em-dash
 10. Wait for CI green on BOTH `build (node 20)` + `build (node 22)` before merging. Use `gh pr checks <n> --watch` (run in background, wait for notification).
 11. Squash-merge + `--delete-branch`. Archive-tag local + `-D` if `-d` refuses.
 12. Worker deploy: `CLOUDFLARE_API_TOKEN=$(security find-generic-password -s CLOUDFLARE_API_TOKEN -w) pnpm --filter @travisbreaks/travisEATSbugs-worker run deploy` (or equivalent wrangler-from-worker-dir invocation). Verify via `curl -I https://eats.travisfixes.com/annotations` after deploy.
-13. Vendor-site bumps (Pivotal at 0.0.7 LOCKED; LSD at 0.0.3 -> Phase 2 bumps to 0.0.10) are OUT of this specialist's scope; coordinate with the relevant specialist or escalate to Prime.
+13. Vendor-site bumps (Pivotal at 0.0.7-alpha.0 LOCKED; LSD currently linked at 0.0.7-alpha.0 in app-cf/package.json) are OUT of this specialist's scope; coordinate with the relevant specialist or escalate to Prime.
 
 ## Where the deep context lives
 
