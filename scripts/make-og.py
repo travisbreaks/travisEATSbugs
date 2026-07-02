@@ -18,8 +18,9 @@ TEMP_SVG = OUT_DIR / ".og-temp.svg"
 OUT_PNG = OUT_DIR / "og-v2.png"
 
 OG_W, OG_H = 1200, 630
-ICON_TARGET_H = 580  # large enough that the icon dominates the OG card even
-                     # after link-preview platforms aggressively crop the image
+ICON_TARGET_H = 540  # height of the VISIBLE content (mouth+bug), not the full
+                     # viewBox. The icon SVG has ~25% internal padding so a
+                     # naive viewBox-based scale leaves the visible mark tiny.
 BG_COLOR = "#0c0908"   # warm dark void per canon §0
 FG_COLOR = "#fcf6ec"   # warm cream per canon §0
 
@@ -32,12 +33,58 @@ if not m:
 vb = [float(v) for v in m.group(1).split()]
 vb_x, vb_y, vb_w, vb_h = vb
 
-# Scale icon to ICON_TARGET_H, keep aspect
-scale = ICON_TARGET_H / vb_h
-icon_w = vb_w * scale
-icon_h = vb_h * scale
-icon_tx = (OG_W - icon_w) / 2 - vb_x * scale
-icon_ty = (OG_H - icon_h) / 2 - vb_y * scale
+
+# Compute the actual visible-content bbox by scanning all path d-attributes
+# (accounting for per-path transform="translate(...)"). The full viewBox has
+# significant empty padding so we want to scale based on the content bbox.
+NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
+TRANSLATE_RE = re.compile(
+    r"translate\(\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*\)"
+)
+
+
+def content_bbox(svg_text: str) -> tuple[float, float, float, float]:
+    # Strip out <defs>...</defs> (its mask geometry is internal, not visible).
+    defs = re.search(r"<defs\b.*?</defs>", svg_text, re.DOTALL)
+    scan_target = svg_text.replace(defs.group(0), "") if defs else svg_text
+    paths = re.findall(r"<path\b[^/]*/>", scan_target)
+    min_x, min_y, max_x, max_y = float("inf"), float("inf"), float("-inf"), float("-inf")
+    for p in paths:
+        d_m = re.search(r'\bd="([^"]+)"', p)
+        if not d_m:
+            continue
+        nums = [float(n) for n in NUM_RE.findall(d_m.group(1))]
+        if len(nums) < 4:
+            continue
+        t_m = re.search(r'\btransform="([^"]+)"', p)
+        tx, ty = 0.0, 0.0
+        if t_m:
+            tt = TRANSLATE_RE.search(t_m.group(1))
+            if tt:
+                tx, ty = float(tt.group(1)), float(tt.group(2))
+        xs = [n + tx for n in nums[0::2]]
+        ys = [n + ty for n in nums[1::2]]
+        min_x = min(min_x, min(xs))
+        min_y = min(min_y, min(ys))
+        max_x = max(max_x, max(xs))
+        max_y = max(max_y, max(ys))
+    return min_x, min_y, max_x, max_y
+
+
+cb = content_bbox(logo_text)
+content_x, content_y = cb[0], cb[1]
+content_w = cb[2] - cb[0]
+content_h = cb[3] - cb[1]
+
+# Scale so the visible content height matches ICON_TARGET_H
+scale = ICON_TARGET_H / content_h
+icon_w = content_w * scale
+icon_h = content_h * scale
+# Position so visible content is centered on the canvas. We translate the
+# full SVG content by the negative of its bbox offset (times scale) then
+# add the canvas-center offset.
+icon_tx = (OG_W - icon_w) / 2 - content_x * scale
+icon_ty = (OG_H - icon_h) / 2 - content_y * scale
 
 # Pull just the visible content of logo.svg (everything between <svg> and </svg>)
 inner = re.search(r"<svg\b[^>]*>(.*?)</svg>", logo_text, re.DOTALL).group(1).strip()
