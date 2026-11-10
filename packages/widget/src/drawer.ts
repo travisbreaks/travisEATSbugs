@@ -54,13 +54,13 @@ export type DrawerOpts = {
    *     marketing sites.
    *   - 'right-rail': a full-height side drawer pinned to the right
    *     edge of the viewport, slide-in animation. Matches the shape of
-   *     Pivotal's AI chat sidebar and the legacy hand-rolled
+   *     Host A's AI chat sidebar and the legacy hand-rolled
    *     PageNotesDrawer the client was used to before the EATS cutover.
    * `position` is ignored when layout is 'right-rail'.
    */
   layout?: 'floating' | 'right-rail'
   /**
-   * Width of the right-rail in pixels. Defaults to 420 to match Pivotal's
+   * Width of the right-rail in pixels. Defaults to 420 to match Host A's
    * AI chat sidebar + the legacy PageNotesDrawer. Ignored when layout
    * is 'floating'.
    */
@@ -647,7 +647,7 @@ export class AnnotationDrawer {
   private buildPanel(): HTMLDivElement {
     const layout = this.opts.layout ?? 'floating'
     // Optional translucent backdrop for the right-rail layout. Clicking
-    // the backdrop closes the rail (matches Pivotal's AI chat sidebar
+    // the backdrop closes the rail (matches Host A's AI chat sidebar
     // dismiss UX). 'floating' layout never gets a backdrop.
     if (layout === 'right-rail') {
       const backdrop = document.createElement('div')

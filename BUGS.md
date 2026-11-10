@@ -1,6 +1,6 @@
 # travisEATSbugs: Known issues + consumer bug reports
 
-Cross-consumer bug tracker for the widget. When a consumer (Pivotal, Lion's Share, future) finds a bug, log it here so the fix lands in the canonical widget and flows back out to every consumer on the next release.
+Cross-consumer bug tracker for the widget. When a consumer (Host A, Host B, future) finds a bug, log it here so the fix lands in the canonical widget and flows back out to every consumer on the next release.
 
 ## Workflow
 
@@ -23,14 +23,14 @@ The version bump is the contract that signals "consumer should re-vendor". When 
 |---|---|---|---|
 | 0.0.10-alpha.0 | 2026-05-20 | Version alignment: widget + adapter-cloudflare + adapter-http brought to 0.0.10 to match the canonical MCP server version. MCP server (`apps/mcp-server/`) ships as a new public package: 4 tools (`list_annotations`, `get_annotation`, `resolve_annotation`, `reopen_annotation`) over stdio. No widget or adapter API surface change in this bump. | (no new columns) |
 | 0.0.9-alpha.0 | 2026-05-20 | Worker bulk ingest endpoint (`POST /annotations/bulk`): member-token only, MAX_BULK_ITEMS=200, per-item error isolation. Brain-dump ingest path is now a public API. Widget version bumped as a release marker; no widget schema change. | (no new columns) |
-| 0.0.8-alpha.0 | 2026-05-20 | Bug-button + hint-ribbon config: floating bug button position / size / animation modes are now options; hint ribbon offset is configurable. Four Pivotal shadow-DOM workarounds upstreamed into canonical TEB. | (no new columns) |
-| 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Pivotal's AI chat sidebar shape and the legacy PageNotesDrawer | (no new columns; UI-only) |
+| 0.0.8-alpha.0 | 2026-05-20 | Bug-button + hint-ribbon config: floating bug button position / size / animation modes are now options; hint ribbon offset is configurable. Four Host A shadow-DOM workarounds upstreamed into canonical TEB. | (no new columns) |
+| 0.0.7-alpha.0 | 2026-05-19 | Drawer layout option (F3): `layout: 'right-rail'` renders a full-height side drawer with slide-in animation + optional backdrop, matching Host A's AI chat sidebar shape and the legacy PageNotesDrawer | (no new columns; UI-only) |
 | 0.0.6-alpha.0 | 2026-05-19 | Pin durability (B3): fall-through chain selector -> xpath -> textQuote -> viewport when a stored selector is ambiguous, plus capture-time Tailwind-utility veto so finder picks structural selectors | `anchor.xpath` (already present as `xpath TEXT NULL` from 0.0.1 schema; B3 hardens use of it) |
 | 0.0.5-alpha.0 | 2026-05-19 | Hide orphan pins (B2) so dead-selector pins stop stacking on the viewport edge | (no new columns) |
 | 0.0.4-alpha.0 | 2026-05-19 | Drawer kind filter + per-pin kind coloring on page-mode (F2) | `kind TEXT CHECK ('bug'\|'feature'\|'note' NULL)` (from 0.0.3) |
-| 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) | `kind TEXT CHECK ('bug'\|'feature'\|'note' NULL)`. **Without this column, adapters silently drop kind on save.** Pivotal: mig 068. LS: pending mig 054. |
+| 0.0.3-alpha.0 | 2026-05-18 | Optional kind radios (bug / feature / note) + Clear in compose UI (F1) | `kind TEXT CHECK ('bug'\|'feature'\|'note' NULL)`. **Without this column, adapters silently drop kind on save.** Host A: mig 068. Host B: pending mig 054. |
 | 0.0.2-alpha.0 | 2026-05-18 | Route-refresh fix (B1) | (no new columns) |
-| 0.0.1-alpha.0 | 2026-05-14 | Initial extraction from Pivotal | Base schema: `id`, `page_path`, `author_id`, `body`, `created_at`, `modified_at`, `state`, `resolved_pr`, `resolved_at`, `resolved_by`, `resolution_note`, `related_ids` (JSON), `dup_of`, `x_pct`, `y_pct`, `selector`, `xpath` |
+| 0.0.1-alpha.0 | 2026-05-14 | Initial extraction from Host A | Base schema: `id`, `page_path`, `author_id`, `body`, `created_at`, `modified_at`, `state`, `resolved_pr`, `resolved_at`, `resolved_by`, `resolution_note`, `related_ids` (JSON), `dup_of`, `x_pct`, `y_pct`, `selector`, `xpath` |
 
 ## Open
 
@@ -40,12 +40,12 @@ _None tracked at the moment. Add new entries here as they come in._
 
 ### F3 - Right-rail drawer layout option [0.0.7-alpha.0]
 
-**Asked:** 2026-05-19 by Travis (consumer: Pivotal).
-**Why:** The pre-EATS hand-rolled `<PageNotesDrawer />` in Pivotal was a full-height right-rail drawer (`fixed top-0 right-0 h-full w-[420px]`), visually paired with the AI chat sidebar. The EATS widget defaulted to a small bottom-right floating panel which felt like a different (and lesser) affordance to the client lead. Consumers should be able to pick which layout fits their host UX.
+**Asked:** 2026-05-19 by Travis (consumer: Host A).
+**Why:** The pre-EATS hand-rolled `<PageNotesDrawer />` in Host A was a full-height right-rail drawer (`fixed top-0 right-0 h-full w-[420px]`), visually paired with the AI chat sidebar. The EATS widget defaulted to a small bottom-right floating panel which felt like a different (and lesser) affordance to the client lead. Consumers should be able to pick which layout fits their host UX.
 **Shape:**
-- New `DrawerOpts.layout: 'floating' | 'right-rail'` (default `'floating'`, backwards compatible for Lion's Share + other consumers).
-- New `DrawerOpts.railWidth` (default 420) to match Pivotal's AI sidebar width.
-- New `DrawerOpts.backdrop` (boolean, default false): when true + layout='right-rail', renders a translucent backdrop behind the rail; clicking it closes the drawer (Pivotal AI sidebar dismiss pattern).
+- New `DrawerOpts.layout: 'floating' | 'right-rail'` (default `'floating'`, backwards compatible for Host B + other consumers).
+- New `DrawerOpts.railWidth` (default 420) to match Host A's AI sidebar width.
+- New `DrawerOpts.backdrop` (boolean, default false): when true + layout='right-rail', renders a translucent backdrop behind the rail; clicking it closes the drawer (Host A AI sidebar dismiss pattern).
 - Right-rail panel: `position: fixed; top: 0; right: 0; bottom: 0; width: railWidth; max-height: 100vh`; slide-in from right (`translateX(100%) -> translateX(0)`) animation; left border + leftward drop shadow.
 - Floating layout unchanged.
 **Consumer action:** pass `layout: 'right-rail'` (plus optional `backdrop: true`) to `new AnnotationWidget({ ... })` or `new AnnotationDrawer({ ... })`.
@@ -59,7 +59,7 @@ _None tracked at the moment. Add new entries here as they come in._
 - Page-mode pins: pin background colors by kind (`teb-pin-bug` red, `teb-pin-feature` blue, `teb-pin-note` slate gray). Unclassified pins keep the default accent pink. The `teb-pin-stale` class (gray) still wins over kind classes, so a broken-selector pin reads as stale regardless of its kind.
 - Pin `aria-label` now includes the kind in parentheses for screen readers (`Open feedback 3 (bug)`).
 - MemoryAdapter rounded-tripped to round-trip kind through create + the `{ kind: AnnotationKind | null }` PATCH variant. Without this, the F1 metadata was disappearing on every adapter that wasn't custom-wired (tests, playground).
-**Consumer action:** Drop the new `.tgz` and redeploy. The drawer filter row appears automatically; per-pin coloring lights up for any annotation that already has `kind` set. Adapters that already round-trip kind (Pivotal's via mig 068 + `eats-bugs-adapter.ts`) get both features end-to-end.
+**Consumer action:** Drop the new `.tgz` and redeploy. The drawer filter row appears automatically; per-pin coloring lights up for any annotation that already has `kind` set. Adapters that already round-trip kind (Host A's via mig 068 + `eats-bugs-adapter.ts`) get both features end-to-end.
 
 ### F1 - Optional kind radios + Clear in compose UI [0.0.3-alpha.0]
 
@@ -73,13 +73,13 @@ _None tracked at the moment. Add new entries here as they come in._
 - Page-mode compose: same row of radio pills + Clear, themed for the BugHerd-style card. Independent state from the drawer's compose (each surface has its own `composeKind`).
 - Drawer list items: single colored badge (Bug = red, Feature = blue, Note = neutral) below the body.
 - Page-mode view card: same single badge above the body.
-**Consumer action:** Adapters that want to persist + round-trip `kind` need to surface the field. Adapters that ignore the field stay backwards compatible; UI shows radios but `kind` gets dropped on the wire. Pivotal adapter update lands in a separate PR (Pivotal repo).
+**Consumer action:** Adapters that want to persist + round-trip `kind` need to surface the field. Adapters that ignore the field stay backwards compatible; UI shows radios but `kind` gets dropped on the wire. Host A adapter update lands in a separate PR (Host A repo).
 
 ## Fixed
 
 ### B3 - Pins anchor to the wrong element when selectors are utility-class noise [0.0.6-alpha.0]
 
-**Reported:** 2026-05-19 by the client lead via Travis (consumer: Pivotal).
+**Reported:** 2026-05-19 by the client lead via Travis (consumer: Host A).
 **Symptom:** After the 0.0.5 orphan-hide ship, pins on `/` still rendered in visibly wrong positions. Specifically the client lead had 3 pins clustered at the top of the dashboard but the markers were over different cards than the ones he originally clicked.
 **Root cause:** Two compounding bugs.
 
@@ -96,26 +96,26 @@ _None tracked at the moment. Add new entries here as they come in._
 
 ### B2 - Orphan pins stack on viewport edge when selectors break [0.0.5-alpha.0]
 
-**Reported:** 2026-05-19 by the client lead via Travis (consumer: Pivotal).
-**Symptom:** On `/` (Pivotal dashboard) the client lead saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
+**Reported:** 2026-05-19 by the client lead via Travis (consumer: Host A).
+**Symptom:** On `/` (Host A dashboard) the client lead saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
 **Root cause:** When a pin's stored CSS selector / xpath no longer resolves on the current DOM (page has been refactored since the pin was placed), `rebuildPinViews()` fell through to the orphan-tray fallback `vx: 16, vy: 16 + N*36`, which stacked every dead-anchor pin in a column. Coupled with the new 0.0.4 per-pin kind coloring, the result was a visually prominent column of "broken" markers on every page that had drifted.
 **Fix:** Skip rendering orphan pins entirely. `if (!pin.target) continue` before creating the DOM node; CSS now also has `display: none !important` on `.teb-pin-stale` as belt-and-suspenders for the in-flight orphan case (a pin whose target was alive at mount but disappeared during the session). The drawer list view still surfaces every note for the route, so the note data isn't lost; only the on-page marker disappears. Ships in 0.0.5-alpha.0.
-**Consumer action:** Pivotal re-vendors 0.0.5 and redeploys.
+**Consumer action:** Host A re-vendors 0.0.5 and redeploys.
 
 ### B1 - Sticky-note pins not page-scoped across soft navigation [0.0.2-alpha.0]
 
-**Reported:** 2026-05-18 by Travis (consumer: Pivotal)
+**Reported:** 2026-05-18 by Travis (consumer: Host A)
 **Symptom:** After click-to-place pins on `/bookings/A`, navigating to `/bookings/B` via Next.js Link still rendered the `/bookings/A` pins on top of the `/bookings/B` DOM. Same shape applied to the drawer's note list.
 **Root cause:** Both `AnnotationPageMode#refresh()` and `AnnotationDrawer#refresh()` only ran on mount. The default `routeFilter` / `anchorQuery` reads `window.location.pathname` at call time, but neither component subscribed to soft-navigation events (`pushState` / `replaceState`) that frameworks like Next.js, React Router, and Vue Router use. `popstate` alone misses every soft navigation.
 **Fix:** New `route-watcher.ts` module patches `history.pushState` + `replaceState` once (idempotent), bridges them with native `popstate`, and exposes `onRouteChange(cb)`. Both drawer and page-mode subscribe on mount; on each route change they cancel any in-progress compose (anchored to the old page) and re-call `refresh()`. 7 new tests cover the patch behavior. Lands in 0.0.2-alpha.0.
-**Consumer action:** Pivotal re-vendored the new `.tgz` and redeployed. No code changes needed in the host adapter.
+**Consumer action:** Host A re-vendored the new `.tgz` and redeployed. No code changes needed in the host adapter.
 
 ## Dev workflow
 
-See `docs/dev-workflow.md` for the canonical recipe when iterating on the widget while it's actively consumed by Pivotal + Lion's Share.
+See `docs/dev-workflow.md` for the canonical recipe when iterating on the widget while it's actively consumed by Host A + Host B.
 
 ## Known limitations (not bugs)
 
 - **0.0.x signals pre-stable.** Breaking changes in CreateInput / Annotation are allowed without major bumps until 0.1.x. Pin to exact `file:vendor/...tgz` paths in consumers to avoid surprises.
 - **No filter UI yet** for the `kind?: 'bug' | 'feature' | 'note'` metadata. Tracked as a feature, not a bug.
-- **Toggle between drawer-default and overlay-default at runtime.** Currently requires mounting both `AnnotationWidget({renderMode:'drawer'})` and `AnnotationPageMode` in parallel (which is what Pivotal does). A first-class "switch render mode" UI in the widget is on the roadmap.
+- **Toggle between drawer-default and overlay-default at runtime.** Currently requires mounting both `AnnotationWidget({renderMode:'drawer'})` and `AnnotationPageMode` in parallel (which is what Host A does). A first-class "switch render mode" UI in the widget is on the roadmap.

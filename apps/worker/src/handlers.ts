@@ -155,7 +155,7 @@ async function handleCreate(req: Request, env: WorkerEnv, auth: AuthIdentity): P
  * Use cases:
  *   - Brain-dump import: bulk-insert a batch of notes from a transcript /
  *     spreadsheet / call-prep doc into the inbox in one go (the pattern
- *     Pivotal did with notes 49-72 via raw SQL becomes an API).
+ *     Host A did with notes 49-72 via raw SQL becomes an API).
  *   - Migration: move notes from another system into TEB without per-row
  *     POST round-trips.
  *   - Seeding: initialize a fresh tenant with a starter set of notes.

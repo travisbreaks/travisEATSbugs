@@ -1,15 +1,15 @@
 # TEB region screenshot capture (Apple Shift+4 style)
 
-**Status:** open. Captured from Travis 2026-05-20 (Pivotal context).
+**Status:** open. Captured from Travis 2026-05-20 (Host A context).
 **Priority:** medium. BugHerd parity feature, useful in some workflows.
-Was initially scoped "high" until a Pivotal-side incident reframed the
-problem (see "What the Pivotal #106-#109 case taught us" below).
+Was initially scoped "high" until a Host A-side incident reframed the
+problem (see "What the Host A #106-#109 case taught us" below).
 **Related:** [`note-threads-2026-05-20.md`](note-threads-2026-05-20.md),
 [`per-host-theming-2026-05-20.md`](per-host-theming-2026-05-20.md).
 
 ## The need
 
-The client lead files notes on Pivotal. Sometimes the body is ambiguous. Travis or
+The client lead files notes on Host A. Sometimes the body is ambiguous. Travis or
 the admin wants to ask "which element / which row / which screen" but
 the pin's selector alone doesn't always carry that signal (a pin can be
 anchored to a header div even when the actual confusion is in the cell
@@ -109,11 +109,11 @@ Compose-card integration in `drawer.ts` + `page-mode.ts`:
 ### Adapter / worker side
 
 No changes needed. `Annotation.screenshot` is already part of the
-shape. Adapters that round-trip it (Pivotal already does; LS will
+shape. Adapters that round-trip it (Host A already does; Host B will
 once it catches up) will store the region screenshot the same way
 they store the auto-capture.
 
-For tenant-scoped widgets (Phase 2 LS A6 pilot): R2 upload of the
+For tenant-scoped widgets (Phase 2 Host B A6 pilot): R2 upload of the
 screenshot blob lands in `r2://<bucket>/tenants/<tenant>/screenshots/<note-id>.png`.
 
 ## Effort estimate
@@ -122,14 +122,14 @@ screenshot blob lands in `r2://<bucket>/tenants/<tenant>/screenshots/<note-id>.p
 - Compose card UI integration (drawer + page-mode): 2 hr
 - Playground demo + visual QA: 1 hr
 - Documentation pass: 30 min
-- Build + vendor + smoke into Pivotal staging: 1 hr
+- Build + vendor + smoke into Host A staging: 1 hr
 
 Total: ~8 hr focused work. Targets `0.0.13` or whenever it fits in
 the Phase 1 sequence.
 
 ## Acceptance criteria
 
-- Reporter on Pivotal can click "Screenshot" in compose, draw a
+- Reporter on Host A can click "Screenshot" in compose, draw a
   region, release, and submit a pin with the region screenshot
   attached.
 - Admin in `/admin/page-notes-inbox` sees the screenshot inline on
@@ -142,16 +142,16 @@ the Phase 1 sequence.
 - Tests cover: region commit, Escape cancel, simultaneous
   auto-capture-and-region (region wins).
 
-## What the Pivotal #106 to #109 case taught us
+## What the Host A #106 to #109 case taught us
 
-Same day this doc was drafted, the Pivotal client lead filed four notes:
+Same day this doc was drafted, the Host A client lead filed four notes:
 
 - #106 "Move Status to left of Date"
 - #107 "City should just be the city"
 - #108 "State should just be the state"
 - #109 "address can be under venue"
 
-The Pivotal thread initially drafted screenshot/clarification asks to
+The Host A thread initially drafted screenshot/clarification asks to
 the client lead. Then it looked at the actual data:
 
 ```

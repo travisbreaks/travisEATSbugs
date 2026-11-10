@@ -1,7 +1,7 @@
 # Vector Creation for Claude: Practical Guide
 
 **Date:** 2026-05-14
-**For:** Travis, deciding how to invest in Claude's vector-graphics capability ahead of `travisEATSbugs` and downstream brand work (Pivotal, Lions Share, Theoria, travisFIXES, travisMAKES).
+**For:** Travis, deciding how to invest in Claude's vector-graphics capability ahead of `travisEATSbugs` and downstream brand work (Host A, Host B, Theoria, travisFIXES, travisMAKES).
 **TL note:** Travis prefers no TL;DRs. See "Travis's decision points" at the end for the choices that need making.
 
 ---
@@ -184,11 +184,11 @@ The icon is a stylized mouth eating a bug. That's stylized illustration with two
 
 1. **Pay for a generation API or stay fully local?** $0.08/gen on Recraft V3 buys quality-of-output that local LLM SVG emission can't currently match. If travisEATSbugs will spawn 50+ vector assets across logo, icon set, marketing, playground, paying once unblocks the rest.
 
-2. **Adopt the neonwatty/logo-designer-skill or fork it?** It's MIT and the structure is exactly what's needed. Forking gets you control of the SVG conventions, phase prompts, and the favicon-strip preview customized to your brand standards. Forking is the right call if multiple Travis brands will use this (Pivotal, Lions Share, Theoria, travisFIXES, travisMAKES all need vector work).
+2. **Adopt the neonwatty/logo-designer-skill or fork it?** It's MIT and the structure is exactly what's needed. Forking gets you control of the SVG conventions, phase prompts, and the favicon-strip preview customized to your brand standards. Forking is the right call if multiple Travis brands will use this (Host A, Host B, Theoria, travisFIXES, travisMAKES all need vector work).
 
 3. **resvg-js vs Inkscape CLI vs headless Chrome for the rendering side?** resvg-js is the cleanest for static logos. Headless Chrome is the right choice if SVG animations or web fonts enter the picture. Inkscape CLI is the heaviest install and rarely needed unless you want path-boolean operations.
 
-4. **One brand system or per-product?** Once travisEATSbugs has a real logo, do you stamp it through Lions Share, Pivotal client work, and personal sites with shared color tokens and an icon family? Or does each product get its own visual canon? This decides whether Penpot/Figma enters the stack or whether `brand/` directories with shared tokens is enough.
+4. **One brand system or per-product?** Once travisEATSbugs has a real logo, do you stamp it through Host B, Host A client work, and personal sites with shared color tokens and an icon family? Or does each product get its own visual canon? This decides whether Penpot/Figma enters the stack or whether `brand/` directories with shared tokens is enough.
 
 5. **MCP or skill?** The MCP-for-SVG ecosystem isn't mature (the closest analog to Blender MCP doesn't exist). The Claude Code skill pattern is mature and matches what Travis already uses. Default to skill; revisit MCP in 6-12 months when one of inkmcp/svgmaker-mcp/sandraschi reaches battle-tested state.
 

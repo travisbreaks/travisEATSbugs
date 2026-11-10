@@ -49,7 +49,7 @@ function getNormalizedPath(): string {
 /**
  * Class names that look like Tailwind / atomic-CSS utilities. Picking
  * these for selectors gives wildly ambiguous matches (`.items-start`
- * matches dozens of nodes on a typical Pivotal page), which means
+ * matches dozens of nodes on a typical Host A page), which means
  * `document.querySelector(sel)` returns the wrong element on render and
  * pins anchor visually in the "wrong place". @medv/finder's `className`
  * predicate lets us veto these so finder falls back to tag + nth-of-type
