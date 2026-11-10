@@ -55,3 +55,8 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Internal agent working files stay local; this repository is public.
+.claude/memory/
+.claude/agents/
+.tadao/
