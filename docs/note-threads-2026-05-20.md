@@ -1,19 +1,18 @@
 # TEB note threads: two-way per-note communication
 
-**Status:** open. Captured from Travis 2026-05-20 (Pivotal-Cole context).
+**Status:** open. Captured from Travis 2026-05-20 (Pivotal context).
 **Priority:** high. Real workflow gap surfaced from Pivotal use.
-**Related:** `client-facing-tenancy.md` (control-plane work),
-`per-host-theming-2026-05-20.md` (Phase 1 design docs).
+**Related:** `per-host-theming-2026-05-20.md` (Phase 1 design docs).
 
 ## The need
 
-Cole files notes via the widget on Pivotal. Some are unclear or ambiguous.
-The admin (Travis / Cole's other team) needs to ask Cole a follow-up
+The client lead files notes via the widget on Pivotal. Some are unclear or ambiguous.
+The admin (Travis / the client's other team) needs to ask the client lead a follow-up
 question. Today that has to happen out-of-band (text, email, separate
 thread). Then the answer has to be manually reconciled back to the note.
 
 Same scenario applies for every TEB consumer: LSD asks an Acme team
-member to clarify a bug; Travis asks Jesse to confirm a feature ask; a
+member to clarify a bug; Travis asks the agency owner to confirm a feature ask; a
 client team's PM asks the original reporter to add a screenshot.
 
 **The note should become a thread.** First message starts the thread.
@@ -60,7 +59,7 @@ zero-reply thread.
 
 ### Widget-side (reporter)
 
-- Reporter (Cole, or a client team member) sees their own notes via the
+- Reporter (the client lead, or a client team member) sees their own notes via the
   widget's drawer list
 - Note that has unread admin replies shows a badge (`!` or dot)
 - Click note → see thread inline → reply with the widget's existing
@@ -97,7 +96,7 @@ post-MVP.
 - Reply via email (incoming email → posts as message via Resend inbound)
 
 **Pivotal-internal**:
-- Cole-specific notification preferences (text via iMessage relay?)
+- Reporter-specific notification preferences (text relay?)
 - Canon-lane-aware reply routing (W7-related replies route to finance person)
 
 ## Acceptance criteria

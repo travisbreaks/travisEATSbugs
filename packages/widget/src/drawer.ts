@@ -55,7 +55,7 @@ export type DrawerOpts = {
    *   - 'right-rail': a full-height side drawer pinned to the right
    *     edge of the viewport, slide-in animation. Matches the shape of
    *     Pivotal's AI chat sidebar and the legacy hand-rolled
-   *     PageNotesDrawer Cole was used to before the EATS cutover.
+   *     PageNotesDrawer the client was used to before the EATS cutover.
    * `position` is ignored when layout is 'right-rail'.
    */
   layout?: 'floating' | 'right-rail'

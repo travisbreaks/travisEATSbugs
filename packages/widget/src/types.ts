@@ -115,11 +115,11 @@ export type Environment = {
  * Gemini call-notes phrasing from 2026-05-18 ("radio button or toggle for
  * bug, feature request, or note categorization") plus an explicit Clear
  * affordance so a reporter can still submit a note with no classification
- * (the "brain dump" path Cole asked for on iMessage: "tick boxes in the
+ * (the "brain dump" path the client asked for: "tick boxes in the
  * note itself (optional)").
  *
  * The shape is intentionally a fixed string-literal union (not free-form
- * tags) to keep the UI compact + match the three categories Cole asked
+ * tags) to keep the UI compact + match the three categories the client asked
  * for: bug, feature, note. Free-form tags / labels can come later as a
  * separate field if a use case appears.
  */
@@ -151,7 +151,7 @@ export type Annotation = {
    * still validate. */
   environment?: Environment
   /** Reporter-supplied single classification (bug / feature / note).
-   * Missing = no classification (the brain-dump path Cole asked for). */
+   * Missing = no classification (the brain-dump path the client asked for). */
   kind?: AnnotationKind
 }
 

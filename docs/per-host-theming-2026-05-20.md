@@ -3,7 +3,6 @@
 **Status:** open. Captured from Travis QA 2026-05-20 (TEB on Pivotal
 context).
 **Priority:** high. Affects every site TEB is installed on.
-**Related:** `client-facing-tenancy.md` (Phase B / Phase 3 LS work)
 
 ## The issue
 

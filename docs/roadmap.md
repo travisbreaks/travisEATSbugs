@@ -50,7 +50,7 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 - [x] Swapped Pivotal's hand-rolled `<PageNotesDrawer />` for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />` (2026-05-18 in commit 62c323f via PR #167)
 - [x] Preserved the existing `page_notes` table; widget reads same schema through the adapter
 - [x] Smoke suite green (28/28 in Pivotal)
-- [x] Staged on preview deploy first, dogfooded by Cole, then promoted
+- [x] Staged on preview deploy first, dogfooded by the client lead, then promoted
 - [x] End-user sees no behavior change
 
 **v0.3 complete** (2026-05-18): Pivotal is the canonical reference consumer at 0.0.7-alpha.0 in production.
@@ -75,7 +75,7 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 ## 0.0.2 to 0.0.7-alpha.0 sprint (2026-05-18 + 2026-05-19)
 
-Real-world Cole-driven iteration inside Pivotal. Six releases in 48 hours.
+Real-world client-driven iteration inside Pivotal. Six releases in 48 hours.
 
 - [x] **0.0.2-alpha.0** (B1): Sticky-note pins now page-scoped across soft navigation. New `route-watcher.ts` patches `history.pushState` + `replaceState` (idempotent); drawer + page-mode subscribe and re-call `refresh()` on every route change. Closed the bug where pins from `/bookings/A` rendered on top of `/bookings/B`.
 - [x] **0.0.3-alpha.0** (F1): Optional kind radios (`bug` / `feature` / `note`) + Clear button in compose UI. `AnnotationKind` type, `Annotation.kind?` field, drawer + page-mode compose rows of radio pills with state reset on submit. Adapters that ignore the field stay backwards compatible.
@@ -90,8 +90,8 @@ Real-world Cole-driven iteration inside Pivotal. Six releases in 48 hours.
 These are captured Pivotal-side patterns + new strategic requirements that have not yet landed in canonical TEB. They guide the next releases.
 
 - **`docs/per-host-theming-2026-05-20.md`**: drawer + helper overlays don't inherit host palette like the button does. Convert hardcoded colors in `drawer.ts` (and `bug-mode.ts`, `page-mode.ts`, `overlay.ts`) to CSS custom properties (`--teb-surface-1`, `--teb-surface-2`, `--teb-muted`, etc.). Estimated 5hr; targets 0.0.8-alpha.
-- **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. Cole files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
-- **`docs/client-facing-tenancy.md`**: Phase A6 multi-tenant pilot for LSD. Ratified decisions D1-D4 baked into doc. Per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning (LS = canary), auth-gated production widget (no random visitor sees zero).
+- **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. The client lead files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
+- **Multi-tenant pilot** (design notes kept outside this repository): per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning with one canary tenant, auth-gated production widget (no random visitor sees zero).
 
 ## v0.8 to v0.10 sprint (2026-05-20, shipped)
 

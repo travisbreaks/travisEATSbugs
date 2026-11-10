@@ -41,7 +41,7 @@ _None tracked at the moment. Add new entries here as they come in._
 ### F3 - Right-rail drawer layout option [0.0.7-alpha.0]
 
 **Asked:** 2026-05-19 by Travis (consumer: Pivotal).
-**Why:** The pre-EATS hand-rolled `<PageNotesDrawer />` in Pivotal was a full-height right-rail drawer (`fixed top-0 right-0 h-full w-[420px]`), visually paired with the AI chat sidebar. The EATS widget defaulted to a small bottom-right floating panel which felt like a different (and lesser) affordance to Cole. Consumers should be able to pick which layout fits their host UX.
+**Why:** The pre-EATS hand-rolled `<PageNotesDrawer />` in Pivotal was a full-height right-rail drawer (`fixed top-0 right-0 h-full w-[420px]`), visually paired with the AI chat sidebar. The EATS widget defaulted to a small bottom-right floating panel which felt like a different (and lesser) affordance to the client lead. Consumers should be able to pick which layout fits their host UX.
 **Shape:**
 - New `DrawerOpts.layout: 'floating' | 'right-rail'` (default `'floating'`, backwards compatible for Lion's Share + other consumers).
 - New `DrawerOpts.railWidth` (default 420) to match Pivotal's AI sidebar width.
@@ -63,8 +63,8 @@ _None tracked at the moment. Add new entries here as they come in._
 
 ### F1 - Optional kind radios + Clear in compose UI [0.0.3-alpha.0]
 
-**Asked:** 2026-05-18 by Cole. Gemini-notes phrasing from the call: "radio button or toggle for bug, feature request, or note categorization." Travis iMessage clarification: "tick boxes in the note itself (optional)." Three classifications: bug / feature / note. Single-select (radio) with an explicit Clear button so the no-classification path still works.
-**Why:** Cole's brain-dump flow benefits from a quick way to tag what kind of thing he's reporting. Travis: "another piece of metadata that you could filter by in the list." Single-select matches Cole's "categorization" intent (a note IS a bug, OR a feature, OR a generic note, not both) while Clear preserves the optional path.
+**Asked:** 2026-05-18 by the client lead. Call-notes phrasing: "radio button or toggle for bug, feature request, or note categorization." Travis's clarification: "tick boxes in the note itself (optional)." Three classifications: bug / feature / note. Single-select (radio) with an explicit Clear button so the no-classification path still works.
+**Why:** The client lead's brain-dump flow benefits from a quick way to tag what kind of thing he's reporting. Travis: "another piece of metadata that you could filter by in the list." Single-select matches the client lead's "categorization" intent (a note IS a bug, OR a feature, OR a generic note, not both) while Clear preserves the optional path.
 **Shape:**
 - New `AnnotationKind = 'bug' | 'feature' | 'note'` type.
 - `Annotation.kind?: AnnotationKind` optional, single value.
@@ -79,8 +79,8 @@ _None tracked at the moment. Add new entries here as they come in._
 
 ### B3 - Pins anchor to the wrong element when selectors are utility-class noise [0.0.6-alpha.0]
 
-**Reported:** 2026-05-19 by Cole via Travis (consumer: Pivotal).
-**Symptom:** After the 0.0.5 orphan-hide ship, pins on `/` still rendered in visibly wrong positions. Specifically Cole had 3 pins clustered at the top of the dashboard but the markers were over different cards than the ones he originally clicked.
+**Reported:** 2026-05-19 by the client lead via Travis (consumer: Pivotal).
+**Symptom:** After the 0.0.5 orphan-hide ship, pins on `/` still rendered in visibly wrong positions. Specifically the client lead had 3 pins clustered at the top of the dashboard but the markers were over different cards than the ones he originally clicked.
 **Root cause:** Two compounding bugs.
 
 1. `@medv/finder` was selecting Tailwind utility classes as the "shortest unique selector". Stored selectors like `.items-start:nth-child(2)`, `.border:nth-child(1)`, and `.min-h-\[180px\]:nth-child(6)` match dozens of elements across a typical page because the utility classes describe styling, not identity.
@@ -96,8 +96,8 @@ _None tracked at the moment. Add new entries here as they come in._
 
 ### B2 - Orphan pins stack on viewport edge when selectors break [0.0.5-alpha.0]
 
-**Reported:** 2026-05-19 by Cole via Travis (consumer: Pivotal).
-**Symptom:** On `/` (Pivotal dashboard) Cole saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
+**Reported:** 2026-05-19 by the client lead via Travis (consumer: Pivotal).
+**Symptom:** On `/` (Pivotal dashboard) the client lead saw 12 numbered red pins stacked vertically along the left edge of the viewport with no apparent target. Looked broken.
 **Root cause:** When a pin's stored CSS selector / xpath no longer resolves on the current DOM (page has been refactored since the pin was placed), `rebuildPinViews()` fell through to the orphan-tray fallback `vx: 16, vy: 16 + N*36`, which stacked every dead-anchor pin in a column. Coupled with the new 0.0.4 per-pin kind coloring, the result was a visually prominent column of "broken" markers on every page that had drifted.
 **Fix:** Skip rendering orphan pins entirely. `if (!pin.target) continue` before creating the DOM node; CSS now also has `display: none !important` on `.teb-pin-stale` as belt-and-suspenders for the in-flight orphan case (a pin whose target was alive at mount but disappeared during the session). The drawer list view still surfaces every note for the route, so the note data isn't lost; only the on-page marker disappears. Ships in 0.0.5-alpha.0.
 **Consumer action:** Pivotal re-vendors 0.0.5 and redeploys.
