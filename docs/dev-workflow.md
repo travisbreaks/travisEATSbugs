@@ -1,6 +1,6 @@
 # travisEATSbugs dev workflow
 
-How to iterate on the widget while it's actively consumed by Pivotal + Lion's Share (and future consumers).
+How to iterate on the widget while it's actively consumed by Host A + Host B (and future consumers).
 
 ## The shape of the loop
 
@@ -17,7 +17,7 @@ How to iterate on the widget while it's actively consumed by Pivotal + Lion's Sh
            │ cp app/vendor/ + npm install
            ▼
 ┌────────────────────────┐   ┌────────────────────────┐
-│  Pivotal               │   │  Lion's Share          │
+│  Host A                │   │  Host B                │
 │  app/vendor/...tgz     │   │  app/vendor/...tgz     │
 └────────────────────────┘   └────────────────────────┘
 ```
@@ -33,7 +33,7 @@ Two-step distribution: source → tgz → consumer. Versioned by the widget's `p
 
 ## When you find a bug or want a feature
 
-### As a consumer (reporting from Pivotal or Lion's Share)
+### As a consumer (reporting from Host A or Host B)
 
 1. Log it under "Open" in `BUGS.md` with: short title, date, consumer, repro, expected vs actual.
 2. If you're the same person who can fix it: branch off main in this repo.
@@ -60,8 +60,8 @@ When you ship a new version, re-vendor into every consumer below.
 
 | Consumer | Vendor path | Repo |
 |---|---|---|
-| Pivotal | `~/code/pivotal-platform/app/vendor/` | `travisbreaks/pivotal-platform` |
-| Lion's Share | `~/code/lions-share/app-cf/vendor/` | `travisbreaks/lions-share-os` |
+| Host A | `<host-a repo>/vendor/` | private repo |
+| Host B | `<host-b repo>/vendor/` | private repo |
 
 (Add new consumers here as they adopt the widget.)
 
@@ -80,7 +80,7 @@ After 0.1.0 we switch to strict SemVer + npm publish.
 
 ## Why a custom `BUGS.md` instead of GitHub issues
 
-- Cross-consumer audit trail (one file shows everything across Pivotal + Lion's Share + others).
+- Cross-consumer audit trail (one file shows everything across Host A + Host B + others).
 - Survives repo migrations / forks (issues don't).
 - Consumer fix notes live next to the symptom in source, not on a separate web surface.
 - We can still mirror to GH issues later if a contributor base materializes.

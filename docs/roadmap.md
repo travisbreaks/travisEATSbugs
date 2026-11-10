@@ -46,22 +46,22 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 ## v0.3: Host CMS integration (drawer mode)
 
-- [x] Reference adapter (Pivotal's `eats-bugs-adapter.ts`) satisfying ApiAdapter + AuthAdapter + ThemeAdapter against a host CMS auth + D1 binding
-- [x] Swapped Pivotal's hand-rolled `<PageNotesDrawer />` for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />` (2026-05-18 in commit 62c323f via PR #167)
+- [x] Reference adapter (Host A's `eats-bugs-adapter.ts`) satisfying ApiAdapter + AuthAdapter + ThemeAdapter against a host CMS auth + D1 binding
+- [x] Swapped Host A's hand-rolled `<PageNotesDrawer />` for `<AnnotationWidget renderMode="drawer" adapter={hostAdapter} />` (2026-05-18 in commit 62c323f via PR #167)
 - [x] Preserved the existing `page_notes` table; widget reads same schema through the adapter
-- [x] Smoke suite green (28/28 in Pivotal)
-- [x] Staged on preview deploy first, dogfooded by Cole, then promoted
+- [x] Smoke suite green (28/28 in Host A)
+- [x] Staged on preview deploy first, dogfooded by the client lead, then promoted
 - [x] End-user sees no behavior change
 
-**v0.3 complete** (2026-05-18): Pivotal is the canonical reference consumer at 0.0.7-alpha.0 in production.
+**v0.3 complete** (2026-05-18): Host A is the canonical reference consumer at 0.0.7-alpha.0 in production.
 
 ## v0.4: Spatial-pin host integration (overlay mode)
 
-- [x] Reference adapter for a spatial-pin consumer (LS's `eats-bugs-adapter.ts`; merged via lions-share PR #60)
-- [x] Lion's Share uses `AnnotationPageMode` for click-to-pin overlay (deployed at 0.0.3-alpha.0 on lionsshare.travisfixes.com)
-- [x] Per-host tinted theme via CSS custom properties: Pivotal red `#EC2127`, LS Mane orange `#C04618`. Note: drawer + helper overlays still need full host-palette inheritance, tracked in `docs/per-host-theming-2026-05-20.md`.
+- [x] Reference adapter for a spatial-pin consumer (Host B's `eats-bugs-adapter.ts`; merged in the Host B repo)
+- [x] Host B uses `AnnotationPageMode` for click-to-pin overlay (deployed at 0.0.3-alpha.0 on host-b.example.com)
+- [x] Per-host tinted theme via CSS custom properties: Host A red `#EC2127`, Host B orange `#C04618`. Note: drawer + helper overlays still need full host-palette inheritance, tracked in `docs/per-host-theming-2026-05-20.md`.
 
-**v0.4 complete** (2026-05-19): LS deployed at 0.0.3-alpha.0; vendor bump to 0.0.7 sits on a docs branch pending merge + canary deploy under the Phase 2 plan.
+**v0.4 complete** (2026-05-19): Host B deployed at 0.0.3-alpha.0; vendor bump to 0.0.7 sits on a docs branch pending merge + canary deploy under the Phase 2 plan.
 
 ## v0.5: Triage + capture + animation polish
 
@@ -75,29 +75,29 @@ Scaffold landed in travisEATSbugs commit `28f78c3` (19 files, 3,198 insertions; 
 
 ## 0.0.2 to 0.0.7-alpha.0 sprint (2026-05-18 + 2026-05-19)
 
-Real-world Cole-driven iteration inside Pivotal. Six releases in 48 hours.
+Real-world client-driven iteration inside Host A. Six releases in 48 hours.
 
 - [x] **0.0.2-alpha.0** (B1): Sticky-note pins now page-scoped across soft navigation. New `route-watcher.ts` patches `history.pushState` + `replaceState` (idempotent); drawer + page-mode subscribe and re-call `refresh()` on every route change. Closed the bug where pins from `/bookings/A` rendered on top of `/bookings/B`.
 - [x] **0.0.3-alpha.0** (F1): Optional kind radios (`bug` / `feature` / `note`) + Clear button in compose UI. `AnnotationKind` type, `Annotation.kind?` field, drawer + page-mode compose rows of radio pills with state reset on submit. Adapters that ignore the field stay backwards compatible.
-- [x] **0.0.3-extra**: Re-export `AnnotationKind` from `@travisbreaks/travisEATSbugs` package root so adapter consumers (Pivotal) drop their local union duplicate.
+- [x] **0.0.3-extra**: Re-export `AnnotationKind` from `@travisbreaks/travisEATSbugs` package root so adapter consumers (Host A) drop their local union duplicate.
 - [x] **0.0.4-alpha.0** (F2): Drawer kind filter pills (`All` / `Bug` / `Feature` / `Note` / `Unclassified`) with live count badges. Per-pin kind coloring on page-mode (`teb-pin-bug` red, `teb-pin-feature` blue, `teb-pin-note` slate; `teb-pin-stale` gray wins). Pin `aria-label` carries kind for screen readers.
 - [x] **0.0.5-alpha.0** (B2): Hide orphan pins entirely. Selector-no-longer-resolves pins no longer stack in a vertical column on the viewport edge. Drawer list still surfaces every note for the route.
 - [x] **0.0.6-alpha.0** (B3): Pin durability via fall-through chain (selector -> xpath -> textQuote -> viewport `elementFromPoint`). Capture-time Tailwind-utility veto prevents `@medv/finder` from picking ambiguous utility-class selectors. `resolveTargetForAnchor()` returns `{ target, via }` so future host code can auto-heal anchors.
-- [x] **0.0.7-alpha.0** (F3): Right-rail drawer layout option (`layout: 'right-rail'`) matching Pivotal's AI chat sidebar shape and the legacy `PageNotesDrawer`. New options: `railWidth`, `backdrop`. Floating layout unchanged (backwards compatible). Slide-in animation, left border + leftward drop shadow.
+- [x] **0.0.7-alpha.0** (F3): Right-rail drawer layout option (`layout: 'right-rail'`) matching Host A's AI chat sidebar shape and the legacy `PageNotesDrawer`. New options: `railWidth`, `backdrop`. Floating layout unchanged (backwards compatible). Slide-in animation, left border + leftward drop shadow.
 
 ## Work-in-flight design docs (toward 0.0.8+)
 
-These are captured Pivotal-side patterns + new strategic requirements that have not yet landed in canonical TEB. They guide the next releases.
+These are captured Host A-side patterns + new strategic requirements that have not yet landed in canonical TEB. They guide the next releases.
 
 - **`docs/per-host-theming-2026-05-20.md`**: drawer + helper overlays don't inherit host palette like the button does. Convert hardcoded colors in `drawer.ts` (and `bug-mode.ts`, `page-mode.ts`, `overlay.ts`) to CSS custom properties (`--teb-surface-1`, `--teb-surface-2`, `--teb-muted`, etc.). Estimated 5hr; targets 0.0.8-alpha.
-- **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. Cole files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
-- **`docs/client-facing-tenancy.md`**: Phase A6 multi-tenant pilot for LSD. Ratified decisions D1-D4 baked into doc. Per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning (LS = canary), auth-gated production widget (no random visitor sees zero).
+- **`docs/note-threads-2026-05-20.md`**: two-way per-note communication. The client lead files a note, admin asks a clarifying question, note becomes a thread. New `page_note_messages` table, adapter methods (`listMessages`, `addMessage`), threaded inbox UI, in-app indicator. Email/SMS dispatch is paid-tier (lands in `teb-cloud`). Targets 0.0.12 or later.
+- **Multi-tenant pilot** (design notes kept outside this repository): per-tenant routing via embed token, R2-hosted brand assets, per-tenant version pinning with one canary tenant, auth-gated production widget (no random visitor sees zero).
 
 ## v0.8 to v0.10 sprint (2026-05-20, shipped)
 
 Phase 1 of the TEB OSS uplift. Three releases over the sprint.
 
-- [x] **0.0.8-alpha.0** (F4): bug-button + hint-ribbon config. Four Pivotal shadow-DOM workarounds upstreamed (button offset, size, animation modes, hint-ribbon offset). PR [#34](https://github.com/travisbreaks/travisEATSbugs/pull/34).
+- [x] **0.0.8-alpha.0** (F4): bug-button + hint-ribbon config. Four Host A shadow-DOM workarounds upstreamed (button offset, size, animation modes, hint-ribbon offset). PR [#34](https://github.com/travisbreaks/travisEATSbugs/pull/34).
 - [x] **0.0.9-alpha.0** (B4): worker bulk ingest endpoint. `POST /annotations/bulk` (member-token only, MAX_BULK_ITEMS=200, per-item error isolation). Brain-dump ingest path is now a public API. PR [#35](https://github.com/travisbreaks/travisEATSbugs/pull/35).
 - [x] **0.0.10-alpha.0** (F5): TEB MCP server (`apps/mcp-server/`). 4 tools: `list_annotations`, `get_annotation`, `resolve_annotation`, `reopen_annotation`. Stdio transport. Wires into Claude Code via `claude mcp add teb npx @travisbreaks/travisEATSbugs-mcp`. PR [#36](https://github.com/travisbreaks/travisEATSbugs/pull/36).
 

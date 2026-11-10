@@ -1,16 +1,15 @@
 # TEB region screenshot capture (Apple Shift+4 style)
 
-**Status:** open. Captured from Travis 2026-05-20 (Pivotal-Cole context).
+**Status:** open. Captured from Travis 2026-05-20 (Host A context).
 **Priority:** medium. BugHerd parity feature, useful in some workflows.
-Was initially scoped "high" until a Pivotal-side incident reframed the
-problem (see "What the Pivotal #106-#109 case taught us" below).
+Was initially scoped "high" until a Host A-side incident reframed the
+problem (see "What the Host A #106-#109 case taught us" below).
 **Related:** [`note-threads-2026-05-20.md`](note-threads-2026-05-20.md),
-[`per-host-theming-2026-05-20.md`](per-host-theming-2026-05-20.md),
-[`client-facing-tenancy.md`](client-facing-tenancy.md).
+[`per-host-theming-2026-05-20.md`](per-host-theming-2026-05-20.md).
 
 ## The need
 
-Cole files notes on Pivotal. Sometimes the body is ambiguous. Travis or
+The client lead files notes on Host A. Sometimes the body is ambiguous. Travis or
 the admin wants to ask "which element / which row / which screen" but
 the pin's selector alone doesn't always carry that signal (a pin can be
 anchored to a header div even when the actual confusion is in the cell
@@ -21,7 +20,7 @@ selects a region (BugHerd has a built-in selector that looks like
 Apple Shift+4), the screenshot becomes part of the report, the admin
 sees exactly what the reporter saw.
 
-Travis's framing (paraphrased): "I hate to be asking Cole for
+Travis's framing (paraphrased): "I hate to be asking the client lead for
 screenshots. I want us to have screenshot capability built into our
 tool because that's what he's going to come back with."
 
@@ -48,9 +47,9 @@ The widget shipped a screenshot integration at 0.0.5
 - `WidgetOpts.screenshotCapture` option exposes the hook
 
 This is **automatic full-page capture on every new pin**. Useful as a
-fire-and-forget default. But it's not what Cole's flow needs.
+fire-and-forget default. But it's not what the client lead's flow needs.
 
-What Cole's flow needs: **user-initiated region selection**. The
+What the client lead's flow needs: **user-initiated region selection**. The
 reporter clicks "add screenshot" in the compose card, the screen
 darkens, drag-to-select a region, release commits the screenshot to
 the pin. Lower bandwidth (region vs full page), higher signal
@@ -110,11 +109,11 @@ Compose-card integration in `drawer.ts` + `page-mode.ts`:
 ### Adapter / worker side
 
 No changes needed. `Annotation.screenshot` is already part of the
-shape. Adapters that round-trip it (Pivotal already does; LS will
+shape. Adapters that round-trip it (Host A already does; Host B will
 once it catches up) will store the region screenshot the same way
 they store the auto-capture.
 
-For tenant-scoped widgets (Phase 2 LS A6 pilot): R2 upload of the
+For tenant-scoped widgets (Phase 2 Host B A6 pilot): R2 upload of the
 screenshot blob lands in `r2://<bucket>/tenants/<tenant>/screenshots/<note-id>.png`.
 
 ## Effort estimate
@@ -123,14 +122,14 @@ screenshot blob lands in `r2://<bucket>/tenants/<tenant>/screenshots/<note-id>.p
 - Compose card UI integration (drawer + page-mode): 2 hr
 - Playground demo + visual QA: 1 hr
 - Documentation pass: 30 min
-- Build + vendor + smoke into Pivotal staging: 1 hr
+- Build + vendor + smoke into Host A staging: 1 hr
 
 Total: ~8 hr focused work. Targets `0.0.13` or whenever it fits in
 the Phase 1 sequence.
 
 ## Acceptance criteria
 
-- Reporter on Pivotal can click "Screenshot" in compose, draw a
+- Reporter on Host A can click "Screenshot" in compose, draw a
   region, release, and submit a pin with the region screenshot
   attached.
 - Admin in `/admin/page-notes-inbox` sees the screenshot inline on
@@ -143,17 +142,17 @@ the Phase 1 sequence.
 - Tests cover: region commit, Escape cancel, simultaneous
   auto-capture-and-region (region wins).
 
-## What the Pivotal #106 to #109 case taught us
+## What the Host A #106 to #109 case taught us
 
-Same day this doc was drafted, Pivotal Cole filed four notes:
+Same day this doc was drafted, the Host A client lead filed four notes:
 
 - #106 "Move Status to left of Date"
 - #107 "City should just be the city"
 - #108 "State should just be the state"
 - #109 "address can be under venue"
 
-The Pivotal thread initially drafted screenshot/clarification asks to
-Cole. Then it looked at the actual data:
+The Host A thread initially drafted screenshot/clarification asks to
+the client lead. Then it looked at the actual data:
 
 ```
 venueAddress: "6 W. 6th Street, St Paul, MN 55102, United States"
@@ -168,7 +167,7 @@ city:  str(o.venueAddress) ?? str(o.city)   // shows full street in City
 state: str(o.venueState)   ?? str(o.state)  // shows "St Paul, MN" in State
 ```
 
-So Cole's grid was rendering:
+So the client lead's grid was rendering:
 
 - **City column** = full street address (because it fell through to venueAddress)
 - **State column** = "St Paul, MN" (city + state combined)
@@ -191,7 +190,7 @@ hard enough before asking), not a tool failure.
 This reframes the screenshot feature. It's still useful (BugHerd
 parity, helps when the pin element itself doesn't carry the visual
 information needed), but it's NOT the silver bullet for "we need to
-ask Cole less." The actual fix lives at a different layer.
+ask the client lead less." The actual fix lives at a different layer.
 
 ## The real "need to ask less" stack
 
@@ -234,5 +233,5 @@ config) → 0.0.9 (anchor rehydration + relatedIds) → 0.0.10 (onMutate
 hook + bulk ingest) → 0.0.11 (TEB MCP server) → 0.0.12 (note threads
 data model) → **0.0.13 (region screenshot)**.
 
-Or pull this earlier if Cole asks for it Friday. It's small enough to
+Or pull this earlier if the client lead asks for it Friday. It's small enough to
 slot in.

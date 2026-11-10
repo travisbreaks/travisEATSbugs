@@ -1,19 +1,18 @@
 # TEB per-host theming: drawer + helper overlay
 
-**Status:** open. Captured from Travis QA 2026-05-20 (TEB on Pivotal
+**Status:** open. Captured from Travis QA 2026-05-20 (TEB on Host A
 context).
 **Priority:** high. Affects every site TEB is installed on.
-**Related:** `client-facing-tenancy.md` (Phase B / Phase 3 LS work)
 
 ## The issue
 
 The TEB widget currently themes its **button** correctly per host site
-(LS uses Mane orange, Pivotal uses red `#EC2127`, etc.) via the
+(Host B uses orange, Host A uses red `#EC2127`, etc.) via the
 `--teb-accent` / `--teb-bg` / `--teb-fg` CSS variables that
 `eats-mount.tsx` sets on `document.documentElement`.
 
 **The DRAWER + helper overlays do NOT inherit the host palette.** They
-keep TEB's default cream/dark theme regardless of host. On Pivotal that
+keep TEB's default cream/dark theme regardless of host. On Host A that
 reads as visually disjoint: the red button + cream PAGE NOTES card
 side-by-side don't look like one tool.
 
@@ -40,7 +39,7 @@ In `packages/widget/src/drawer.ts`:
 Once vars exposed, each host's `eats-mount.tsx` sets the full palette:
 
 ```tsx
-// Pivotal eats-mount:
+// Host A eats-mount:
 document.documentElement.style.setProperty('--teb-accent', '#EC2127');
 document.documentElement.style.setProperty('--teb-bg', '#FFFFFF');
 document.documentElement.style.setProperty('--teb-fg', '#1a1a1a');
@@ -48,7 +47,7 @@ document.documentElement.style.setProperty('--teb-surface-1', '#FFFFFF');
 document.documentElement.style.setProperty('--teb-surface-2', '#F8F4F4');
 document.documentElement.style.setProperty('--teb-muted', '#737373');
 
-// LS OS eats-mount:
+// Host B eats-mount:
 document.documentElement.style.setProperty('--teb-accent', '#C04618');
 document.documentElement.style.setProperty('--teb-bg', '#FFFFFF');
 document.documentElement.style.setProperty('--teb-fg', '#1a1a1a');
@@ -61,7 +60,7 @@ document.documentElement.style.setProperty('--teb-muted', '#6C6A68');
 
 - Drawer audit + var conversion: 2-3 hours
 - Other module audit: 1 hour
-- Per-host adoption (pivotal-platform + lions-share): 30 min each
+- Per-host adoption (Host A + Host B): 30 min each
 - Build, vendor, test in both: 1 hour
 - Ship as 0.0.8-alpha + commit
 
@@ -69,6 +68,6 @@ Total: ~5 hours focused work.
 
 ## Acceptance criteria
 
-- TEB drawer on Pivotal reads visually consistent with Pivotal red brand
-- TEB drawer on LS OS reads visually consistent with LSD Mane orange brand
+- TEB drawer on Host A reads visually consistent with Host A red brand
+- TEB drawer on Host B reads visually consistent with Host B orange brand
 - No host-specific code in `packages/widget/src/*`: pure CSS var driven
