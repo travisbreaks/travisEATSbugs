@@ -494,7 +494,7 @@ describe('worker handlers', () => {
         severity: 'high' as const,
         category: 'a11y',
         rationale: 'contrast issue',
-        suggestedAssignee: 'cole',
+        suggestedAssignee: 'client-lead',
       })
       const configured = makeEnv(sqlite, {
         ANTHROPIC_API_KEY: 'sk-test',
@@ -515,7 +515,7 @@ describe('worker handlers', () => {
       }
       expect(body.severity).toBe('high')
       expect(body.category).toBe('a11y')
-      expect(body.suggestedAssignee).toBe('cole')
+      expect(body.suggestedAssignee).toBe('client-lead')
     })
 
     it('returns 502 when the upstream call returns null', async () => {
